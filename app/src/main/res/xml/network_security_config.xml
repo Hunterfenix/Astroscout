@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default: solo HTTPS. Eccezione mirata per 7Timer!, che storicamente espone l'API
+  anche (o solo) in HTTP: l'app prova sempre HTTPS e ricade su HTTP solo se il TLS fallisce
+  (vedi HttpsFallbackInterceptor).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">7timer.info</domain>
+    </domain-config>
+</network-security-config>

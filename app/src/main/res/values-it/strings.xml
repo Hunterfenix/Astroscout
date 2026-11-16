@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mappa -->
+    <string name="search_hint">Cerca una località…</string>
+    <string name="clear">Cancella</string>
+    <string name="settings">Impostazioni</string>
+    <string name="about">Informazioni</string>
+    <string name="back">Indietro</string>
+    <string name="scan_area">Scansiona area</string>
+    <string name="filter_good" formatted="false">Bortle &lt; 5 · nuvole &lt; 30%</string>
+    <string name="filter_empty" formatted="false">Nessuno spot soddisfa il filtro (Bortle &lt; 5 e nuvolosità &lt; 30%).</string>
+    <string name="simulated_banner">Dati cielo simulati</string>
+    <string name="hint_empty">Cerca una località, tocca “Scansiona area” o tieni premuto sulla mappa per aggiungere uno spot.</string>
+    <string name="refresh_failed">Impossibile caricare %1$d spot. Controlla la connessione.</string>
+    <string name="refresh_partial_cache">%1$d spot mostrano dati dalla cache o incompleti.</string>
+
+    <!-- Dettaglio -->
+    <string name="spot_unnamed">Spot candidato</string>
+    <string name="refresh">Aggiorna</string>
+    <string name="favorite_add">Aggiungi ai preferiti</string>
+    <string name="favorite_remove">Rimuovi dai preferiti</string>
+    <string name="badge_simulated">Cielo simulato</string>
+    <string name="badge_cached">Dati in cache</string>
+    <string name="astro_score">Astro Score</string>
+    <string name="loading">Caricamento…</string>
+    <string name="verdict_excellent">Notte eccellente</string>
+    <string name="verdict_good">Buona notte</string>
+    <string name="verdict_fair">Condizioni discrete</string>
+    <string name="verdict_poor">Condizioni scarse</string>
+    <string name="score_partial">Punteggio parziale: mancano alcuni dati.</string>
+    <string name="metric_light_pollution">Inquinamento luminoso</string>
+    <string name="metric_clouds">Nuvolosità</string>
+    <string name="metric_seeing">Seeing</string>
+    <string name="metric_transparency">Trasparenza</string>
+    <string name="band_dark">cielo buio</string>
+    <string name="band_moderate">suburbano</string>
+    <string name="band_bright">urbano</string>
+    <string name="night_window">Finestra notturna %1$s – %2$s</string>
+    <string name="precipitation">precipitazioni</string>
+    <string name="updated_at">Previsione aggiornata %1$s</string>
+    <string name="retry">Riprova</string>
+    <string name="from_cache_because">Dati dalla cache: %1$s</string>
+
+    <!-- Parcheggi -->
+    <string name="parking_title">Parcheggi vicini (entro %1$s)</string>
+    <string name="parking_none">Nessun parcheggio su OpenStreetMap in questo raggio.</string>
+    <string name="parking_unnamed">Parcheggio senza nome</string>
+    <string name="parking_capacity">%1$d posti</string>
+    <string name="parking_fee_yes">a pagamento</string>
+    <string name="parking_fee_no">gratuito</string>
+    <string name="parking_fee_other">tariffa: %1$s</string>
+
+    <!-- Errori -->
+    <string name="service_sky">Qualità del cielo</string>
+    <string name="service_forecast">Previsioni meteo</string>
+    <string name="service_parking">Ricerca parcheggi</string>
+    <string name="service_geocoding">Ricerca località</string>
+    <string name="error_no_connection">%1$s: nessuna connessione.</string>
+    <string name="error_timeout">%1$s: il server non ha risposto in tempo.</string>
+    <string name="error_rate_limited">%1$s: servizio sovraccarico o limite di richieste raggiunto. Riprova tra un minuto.</string>
+    <string name="error_http">%1$s: errore del server (HTTP %2$d).</string>
+    <string name="error_invalid">%1$s: risposta inattesa dal server.</string>
+    <string name="error_unknown">%1$s: errore imprevisto.</string>
+
+    <!-- Impostazioni -->
+    <string name="weights_title">Pesi dell\'Astro Score</string>
+    <string name="weights_help">I pesi relativi vengono normalizzati automaticamente. Le percentuali mostrano il contributo effettivo di ogni fattore.</string>
+    <string name="grid_title">Griglia di scansione</string>
+    <string name="grid_step">Passo griglia: %1$s km</string>
+    <string name="parking_radius">Raggio ricerca parcheggi: %1$s km</string>
+    <string name="reset_defaults">Ripristina predefiniti</string>
+
+    <!-- Informazioni -->
+    <string name="about_intro">AstroScout ti aiuta a trovare il miglior punto di ripresa per l\'astrofotografia incrociando inquinamento luminoso, meteo astronomico e parcheggi vicini.</string>
+    <string name="about_simulated">Attenzione: nessuna chiave API DarkSkySites configurata. I valori di inquinamento luminoso provengono da una SIMULAZIONE semplificata e non vanno usati per pianificare uscite reali.</string>
+    <string name="about_score_formula" formatted="false">Astro Score = 100 × Σ(peso × sotto-punteggio) / Σ(pesi). Inquinamento luminoso: lineare sull\'SQM da 17.5 a 22.0 mag/arcsec². Nuvole: 1 − copertura media nella finestra notturna (0 se piove). Seeing e trasparenza: (8 − indice 7Timer!) / 7. Con copertura ≥ 80% o precipitazioni il punteggio è limitato a 20.</string>
+    <string name="credit_osm_title">OpenStreetMap</string>
+    <string name="credit_osm_body">Dati cartografici © OpenStreetMap contributors, disponibili con licenza Open Database License (ODbL). Tile © OpenStreetMap.</string>
+    <string name="credit_overpass_title">Overpass API</string>
+    <string name="credit_overpass_body">Parcheggi interrogati su OpenStreetMap tramite Overpass API (overpass-api.de e mirror pubblici).</string>
+    <string name="credit_nominatim_title">Nominatim</string>
+    <string name="credit_nominatim_body">Ricerca località fornita da Nominatim, su dati OpenStreetMap.</string>
+    <string name="credit_7timer_title">7Timer!</string>
+    <string name="credit_7timer_body">Previsioni meteo astronomiche (prodotto ASTRO) di 7Timer!, basate sul modello NOAA/NCEP GFS.</string>
+    <string name="credit_darksky_title">DarkSkySites</string>
+    <string name="credit_darksky_body">Dati di qualità del cielo (SQM allo zenit e classe Bortle) forniti da DarkSkySites.</string>
+    <string name="credit_maplibre_title">MapLibre Native</string>
+    <string name="credit_maplibre_body">Rendering della mappa con MapLibre Native per Android (licenza BSD 2-Clause).</string>
+</resources>

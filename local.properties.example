@@ -1,0 +1,25 @@
+# Copia questo file in local.properties (NON committarlo: è in .gitignore).
+# sdk.dir viene scritto da Android Studio automaticamente.
+# sdk.dir=/path/to/Android/sdk
+
+# --- DarkSkySites (inquinamento luminoso) -------------------------------------------
+# L'API non ha uno schema pubblico documentato: base URL e path sono configurabili.
+# Se darksky.apiKey è vuota (o darksky.useSimulated=true) l'app usa la sorgente
+# SIMULATA (modello deterministico basato sulle grandi città) e lo segnala nella UI.
+darksky.baseUrl=https://www.darkskysites.com/
+darksky.path=api/v1/sky-quality
+darksky.apiKey=
+darksky.useSimulated=false
+
+# --- 7Timer! -------------------------------------------------------------------------
+# Si prova HTTPS; se l'handshake TLS fallisce, un interceptor riprova in HTTP
+# (cleartext consentito SOLO per 7timer.info via network_security_config.xml).
+seventimer.baseUrl=https://www.7timer.info/
+
+# --- OpenStreetMap -------------------------------------------------------------------
+# Le policy di Nominatim/Overpass/tile.openstreetmap.org richiedono un User-Agent
+# che identifichi l'app; aggiungi un contatto (email o URL) per uso reale.
+http.userAgent=AstroScout/0.1 (Android)
+# I tile OSM ufficiali non sono pensati per traffico intenso da app: in produzione
+# usa un provider (MapTiler, Stadia, server proprio...) e aggiorna qui l'URL.
+map.tileUrl=https://tile.openstreetmap.org/{z}/{x}/{y}.png

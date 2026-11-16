@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">AstroScout</string>
+
+    <!-- Map -->
+    <string name="search_hint">Search a place…</string>
+    <string name="clear">Clear</string>
+    <string name="settings">Settings</string>
+    <string name="about">About</string>
+    <string name="back">Back</string>
+    <string name="scan_area">Scan this area</string>
+    <string name="filter_good" formatted="false">Bortle &lt; 5 · clouds &lt; 30%</string>
+    <string name="filter_empty" formatted="false">No spot matches the filter yet (Bortle &lt; 5 and clouds &lt; 30%).</string>
+    <string name="simulated_banner">Simulated sky data</string>
+    <string name="hint_empty">Search a place, tap “Scan this area” or long-press the map to add a spot.</string>
+    <string name="refresh_failed">Could not load %1$d spots. Check your connection.</string>
+    <string name="refresh_partial_cache">%1$d spots are showing cached or incomplete data.</string>
+
+    <!-- Detail -->
+    <string name="spot_unnamed">Candidate spot</string>
+    <string name="refresh">Refresh</string>
+    <string name="favorite_add">Add to favorites</string>
+    <string name="favorite_remove">Remove from favorites</string>
+    <string name="badge_simulated">Simulated sky</string>
+    <string name="badge_cached">Cached data</string>
+    <string name="astro_score">Astro Score</string>
+    <string name="loading">Loading…</string>
+    <string name="verdict_excellent">Excellent night</string>
+    <string name="verdict_good">Good night</string>
+    <string name="verdict_fair">Fair conditions</string>
+    <string name="verdict_poor">Poor conditions</string>
+    <string name="score_partial">Partial score: some data is missing.</string>
+    <string name="metric_light_pollution">Light pollution</string>
+    <string name="metric_clouds">Cloud cover</string>
+    <string name="metric_seeing">Seeing</string>
+    <string name="metric_transparency">Transparency</string>
+    <string name="band_dark">dark sky</string>
+    <string name="band_moderate">suburban</string>
+    <string name="band_bright">urban</string>
+    <string name="night_window">Night window %1$s – %2$s</string>
+    <string name="precipitation">precipitation</string>
+    <string name="updated_at">Forecast updated %1$s</string>
+    <string name="retry">Retry</string>
+    <string name="from_cache_because">Showing cached data: %1$s</string>
+
+    <!-- Parking -->
+    <string name="parking_title">Nearby parking (within %1$s)</string>
+    <string name="parking_none">No parking found in OpenStreetMap within this radius.</string>
+    <string name="parking_unnamed">Unnamed parking</string>
+    <string name="parking_capacity">%1$d spaces</string>
+    <string name="parking_fee_yes">paid</string>
+    <string name="parking_fee_no">free</string>
+    <string name="parking_fee_other">fee: %1$s</string>
+
+    <!-- Errors -->
+    <string name="service_sky">Sky quality</string>
+    <string name="service_forecast">Weather forecast</string>
+    <string name="service_parking">Parking search</string>
+    <string name="service_geocoding">Place search</string>
+    <string name="error_no_connection">%1$s: no connection.</string>
+    <string name="error_timeout">%1$s: the server took too long to answer.</string>
+    <string name="error_rate_limited">%1$s: the service is busy or the request limit was reached. Try again in a minute.</string>
+    <string name="error_http">%1$s: server error (HTTP %2$d).</string>
+    <string name="error_invalid">%1$s: unexpected response from the server.</string>
+    <string name="error_unknown">%1$s: unexpected error.</string>
+
+    <!-- Settings -->
+    <string name="weights_title">Astro Score weights</string>
+    <string name="weights_help">Relative weights are normalized automatically. The percentages show each factor\'s actual share.</string>
+    <string name="grid_title">Scan grid</string>
+    <string name="grid_step">Grid spacing: %1$s km</string>
+    <string name="parking_radius">Parking search radius: %1$s km</string>
+    <string name="reset_defaults">Reset defaults</string>
+
+    <!-- About -->
+    <string name="about_intro">AstroScout helps you find the best spot for astrophotography by combining light pollution, astronomical weather and nearby parking.</string>
+    <string name="about_simulated">Warning: no DarkSkySites API key is configured. Light pollution values come from a simplified SIMULATION and must not be used to plan real sessions.</string>
+    <string name="about_score_formula" formatted="false">Astro Score = 100 × Σ(weight × sub-score) / Σ(weights). Light pollution: linear on SQM from 17.5 to 22.0 mag/arcsec². Clouds: 1 − mean cover over the night window (0 if precipitation). Seeing and transparency: (8 − 7Timer! index) / 7. With cover ≥ 80% or precipitation the score is capped at 20.</string>
+    <string name="credit_osm_title">OpenStreetMap</string>
+    <string name="credit_osm_body">Map data © OpenStreetMap contributors, available under the Open Database License (ODbL). Map tiles © OpenStreetMap.</string>
+    <string name="credit_overpass_title">Overpass API</string>
+    <string name="credit_overpass_body">Parking data queried from OpenStreetMap via the Overpass API (overpass-api.de and public mirrors).</string>
+    <string name="credit_nominatim_title">Nominatim</string>
+    <string name="credit_nominatim_body">Place search powered by Nominatim, using OpenStreetMap data.</string>
+    <string name="credit_7timer_title">7Timer!</string>
+    <string name="credit_7timer_body">Astronomical weather forecast (ASTRO product) by 7Timer!, based on NOAA/NCEP GFS model output.</string>
+    <string name="credit_darksky_title">DarkSkySites</string>
+    <string name="credit_darksky_body">Sky quality data (zenith SQM and Bortle class) by DarkSkySites.</string>
+    <string name="credit_maplibre_title">MapLibre Native</string>
+    <string name="credit_maplibre_body">Map rendering by MapLibre Native for Android (BSD 2-Clause license).</string>
+</resources>
