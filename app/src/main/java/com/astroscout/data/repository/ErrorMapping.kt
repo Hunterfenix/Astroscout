@@ -1,5 +1,7 @@
 package com.astroscout.data.repository
 
+import com.astroscout.data.sky.atlas.HttpStatusException
+import com.astroscout.data.sky.atlas.OutOfAtlasCoverageException
 import com.astroscout.domain.model.DataError
 import com.astroscout.domain.model.DataError.Service
 import kotlinx.serialization.SerializationException
@@ -25,6 +27,8 @@ fun Throwable.toDataError(service: Service): DataError = when (this) {
         503, 504 -> if (service == Service.PARKING) DataError.RateLimited(service) else DataError.Http(service, code())
         else -> DataError.Http(service, code())
     }
+    is HttpStatusException -> if (code == 429) DataError.RateLimited(service) else DataError.Http(service, code)
+    is OutOfAtlasCoverageException -> DataError.OutOfCoverage(service)
     is SerializationException, is IllegalArgumentException -> DataError.InvalidResponse(service, message)
     is IOException -> DataError.NoConnection(service)
     else -> DataError.Unknown(service, message)

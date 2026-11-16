@@ -28,6 +28,8 @@ class SimulatedSkyQualitySource(
 
     data class LightSource(val name: String, val point: GeoPoint, val populationK: Double)
 
+    override val type = SkyQualitySourceType.SIMULATED
+
     override suspend fun fetch(point: GeoPoint): SkyQuality = compute(point)
 
     fun compute(point: GeoPoint): SkyQuality {

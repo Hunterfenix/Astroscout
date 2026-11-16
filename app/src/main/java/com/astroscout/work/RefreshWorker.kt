@@ -23,7 +23,13 @@ import java.util.concurrent.TimeUnit
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val repo = (applicationContext as AstroScoutApp).container.repository
+        val container = (applicationContext as AstroScoutApp).container
+        val repo = container.repository
+        // Atlante: ricontrolla il manifest (internamente al massimo 1 volta/mese) e assicura che le
+        // tile dei preferiti siano su disco, così funzionano offline. Errori qui non bloccano il resto.
+        container.skyAtlas?.let { atlas ->
+            runCatching { atlas.prefetch(repo.favoritePoints().map { it.lat to it.lon }) }
+        }
         val report = repo.refreshFavorites()
         repo.prune()
         // Se tutti i preferiti sono falliti (rete instabile) WorkManager riprova con backoff esponenziale.

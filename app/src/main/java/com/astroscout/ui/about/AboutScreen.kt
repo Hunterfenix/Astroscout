@@ -32,6 +32,7 @@ private val CREDITS = listOf(
     Credit(R.string.credit_overpass_title, R.string.credit_overpass_body, "https://overpass-api.de/"),
     Credit(R.string.credit_nominatim_title, R.string.credit_nominatim_body, "https://nominatim.org/"),
     Credit(R.string.credit_7timer_title, R.string.credit_7timer_body, "https://www.7timer.info/"),
+    Credit(R.string.credit_atlas_title, R.string.credit_atlas_body, "https://doi.org/10.5880/GFZ.1.4.2016.001"),
     Credit(R.string.credit_darksky_title, R.string.credit_darksky_body, "https://www.darkskysites.com/"),
     Credit(R.string.credit_maplibre_title, R.string.credit_maplibre_body, "https://maplibre.org/"),
 )

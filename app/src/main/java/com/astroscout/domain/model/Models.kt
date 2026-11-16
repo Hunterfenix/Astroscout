@@ -14,7 +14,7 @@ data class GeoPoint(val lat: Double, val lon: Double) {
 /** Da dove nasce un candidato: serve per il ciclo di vita in cache e per la UI. */
 enum class SpotOrigin { GRID, MANUAL, SEARCH }
 
-enum class SkyQualitySourceType { DARKSKYSITES, SIMULATED }
+enum class SkyQualitySourceType { WORLD_ATLAS_2015, DARKSKYSITES, SIMULATED }
 
 data class SkyQuality(
     val sqm: Double?,

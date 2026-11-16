@@ -22,6 +22,12 @@ object Formatters {
     fun time(i: Instant): String = time.format(i.atZone(ZoneId.systemDefault()))
     fun dateTime(i: Instant): String = dateTime.format(i.atZone(ZoneId.systemDefault()))
 
+    fun bytes(b: Long): String = when {
+        b < 1024 -> "$b B"
+        b < 1024 * 1024 -> String.format(Locale.getDefault(), "%.0f KB", b / 1024.0)
+        else -> String.format(Locale.getDefault(), "%.1f MB", b / (1024.0 * 1024.0))
+    }
+
     fun coords(lat: Double, lon: Double): String = String.format(Locale.ROOT, "%.4f, %.4f", lat, lon)
 }
 
@@ -44,6 +50,7 @@ fun errorText(e: DataError): String {
         is DataError.Timeout -> stringResource(R.string.error_timeout, service)
         is DataError.RateLimited -> stringResource(R.string.error_rate_limited, service)
         is DataError.Http -> stringResource(R.string.error_http, service, e.code)
+        is DataError.OutOfCoverage -> stringResource(R.string.error_out_of_coverage, service)
         is DataError.InvalidResponse -> stringResource(R.string.error_invalid, service)
         is DataError.Unknown -> stringResource(R.string.error_unknown, service)
     }

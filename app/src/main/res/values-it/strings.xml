@@ -86,4 +86,18 @@
     <string name="credit_darksky_body">Dati di qualità del cielo (SQM allo zenit e classe Bortle) forniti da DarkSkySites.</string>
     <string name="credit_maplibre_title">MapLibre Native</string>
     <string name="credit_maplibre_body">Rendering della mappa con MapLibre Native per Android (licenza BSD 2-Clause).</string>
+
+    <!-- Sky atlas -->
+    <string name="error_out_of_coverage">%1$s: questa località è fuori dall\'area coperta dai dati.</string>
+    <string name="sky_source">Fonte: %1$s</string>
+    <string name="source_atlas">World Atlas 2015 (modellato)</string>
+    <string name="source_darksky">DarkSkySites</string>
+    <string name="source_simulated">simulazione (non reale)</string>
+    <string name="credit_atlas_title">World Atlas of Artificial Night Sky Brightness</string>
+    <string name="credit_atlas_body">Falchi F., Cinzano P., Duriscoe D., Kyba C.C.M., Elvidge C.D., Baugh K., Portnov B., Rybnikova N.A., Furgoni R. (2016): Supplement to: The New World Atlas of Artificial Night Sky Brightness. GFZ Data Services. Licenza CC BY-NC 4.0. Valori convertiti in SQM e quantizzati da AstroScout.</string>
+    <string name="atlas_title">Atlante del cielo (offline)</string>
+    <string name="atlas_info">Versione %1$s · %2$d tile scaricate · %3$s</string>
+    <string name="atlas_none">Nessuna tile scaricata.</string>
+    <string name="atlas_clear">Elimina tile scaricate</string>
+    <string name="atlas_help">Le tile (5°×5°, circa 100 KB) vengono scaricate la prima volta che guardi una zona e restano disponibili offline. I preferiti vengono tenuti aggiornati in background.</string>
 </resources>

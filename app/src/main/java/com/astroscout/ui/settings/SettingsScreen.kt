@@ -36,7 +36,13 @@ import com.astroscout.AstroScoutApp
 import com.astroscout.R
 import com.astroscout.data.settings.AppSettings
 import com.astroscout.data.settings.SettingsRepository
+import com.astroscout.data.sky.atlas.SkyAtlasCacheInfo
+import com.astroscout.data.sky.atlas.SkyTileStore
 import com.astroscout.domain.model.ScoreWeights
+import com.astroscout.ui.Formatters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -44,8 +50,28 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 
-class SettingsViewModel(private val repo: SettingsRepository) : ViewModel() {
+class SettingsViewModel(
+    private val repo: SettingsRepository,
+    private val atlas: SkyTileStore?,
+) : ViewModel() {
     val settings: StateFlow<AppSettings> = repo.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppSettings())
+
+    /** null = atlante non in uso (altra sorgente configurata). */
+    private val _atlasInfo = MutableStateFlow<SkyAtlasCacheInfo?>(null)
+    val atlasInfo: StateFlow<SkyAtlasCacheInfo?> = _atlasInfo
+    val atlasEnabled: Boolean get() = atlas != null
+
+    init { refreshAtlasInfo() }
+
+    private fun refreshAtlasInfo() {
+        val a = atlas ?: return
+        viewModelScope.launch { _atlasInfo.value = withContext(Dispatchers.IO) { a.cacheInfo() } }
+    }
+
+    fun clearAtlas() {
+        val a = atlas ?: return
+        viewModelScope.launch { a.clear(); refreshAtlasInfo() }
+    }
 
     fun setWeights(w: ScoreWeights) = viewModelScope.launch { repo.setWeights(w) }
     fun setGrid(size: Int, step: Double) = viewModelScope.launch { repo.setGrid(size, step) }
@@ -54,7 +80,10 @@ class SettingsViewModel(private val repo: SettingsRepository) : ViewModel() {
 
     companion object {
         val Factory = viewModelFactory {
-            initializer { SettingsViewModel((this[APPLICATION_KEY] as AstroScoutApp).container.settings) }
+            initializer {
+                val c = (this[APPLICATION_KEY] as AstroScoutApp).container
+                SettingsViewModel(c.settings, c.skyAtlas)
+            }
         }
     }
 }
@@ -103,6 +132,20 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel(factory
                 steps = 7,
             )
             OutlinedButton(onClick = { vm.reset() }, modifier = Modifier.padding(vertical = 16.dp)) { Text(stringResource(R.string.reset_defaults)) }
+
+            if (vm.atlasEnabled) {
+                val info by vm.atlasInfo.collectAsStateWithLifecycle()
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                Text(stringResource(R.string.atlas_title), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.atlas_help), style = MaterialTheme.typography.bodySmall)
+                val i = info
+                Text(
+                    if (i == null || i.tileCount == 0) stringResource(R.string.atlas_none)
+                    else stringResource(R.string.atlas_info, i.version ?: "—", i.tileCount, Formatters.bytes(i.bytes)),
+                    modifier = Modifier.padding(vertical = 6.dp),
+                )
+                OutlinedButton(onClick = { vm.clearAtlas() }) { Text(stringResource(R.string.atlas_clear)) }
+            }
         }
     }
 }

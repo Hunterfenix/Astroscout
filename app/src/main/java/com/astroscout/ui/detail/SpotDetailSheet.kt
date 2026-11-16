@@ -204,6 +204,21 @@ private fun Breakdown(spot: Spot) {
             sub = s?.lightPollution,
             color = sky?.let { bandColor(it.bortle) } ?: Unknown,
         )
+        sky?.let {
+            Text(
+                stringResource(
+                    R.string.sky_source,
+                    stringResource(
+                        when (it.source) {
+                            SkyQualitySourceType.WORLD_ATLAS_2015 -> R.string.source_atlas
+                            SkyQualitySourceType.DARKSKYSITES -> R.string.source_darksky
+                            SkyQualitySourceType.SIMULATED -> R.string.source_simulated
+                        }
+                    ),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         if (f != null) {
             Text(
                 stringResource(R.string.night_window, Formatters.time(f.windowStart), Formatters.time(f.windowEnd)) +

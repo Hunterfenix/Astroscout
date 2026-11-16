@@ -197,6 +197,9 @@ class AstroRepository(
         )
     }
 
+    suspend fun favoritePoints(): List<GeoPoint> =
+        withContext(io) { spotDao.favorites().map { GeoPoint(it.lat, it.lon) } }
+
     suspend fun refreshFavorites(): RefreshReport =
         refresh(withContext(io) { spotDao.favorites().map { it.id } })
 
@@ -213,7 +216,10 @@ class AstroRepository(
 
     private suspend fun refreshSky(spot: SpotEntity, point: GeoPoint, force: Boolean): Fetched<SkyQuality> {
         val cached = if (spot.bortle != null && spot.skySource != null) SkyQuality(spot.sqm, spot.bortle, spot.skySource) else null
-        val fresh = spot.skyUpdatedAt?.let { clock.millis() - it < SKY_TTL.toMillis() } == true
+        // Un valore prodotto da un'ALTRA sorgente (es. simulata prima di configurare l'atlante) non è
+        // mai considerato fresco: va sostituito appena possibile, ma resta come fallback offline.
+        val sameSource = cached?.source == skySource.type
+        val fresh = sameSource && spot.skyUpdatedAt?.let { clock.millis() - it < SKY_TTL.toMillis() } == true
         if (cached != null && fresh && !force) return Fetched.Fresh(cached)
 
         val result = catching(Service.SKY_QUALITY) { skySource.fetch(point) }

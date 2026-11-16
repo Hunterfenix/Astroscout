@@ -8,7 +8,8 @@ incrociando **inquinamento luminoso**, **meteo astronomico** (7Timer! ASTRO) e *
 
 1. Android Studio Ladybug o successivo, JDK 17.
 2. `cp local.properties.example local.properties` e compila i valori (vedi i commenti nel file).
-   - Senza `darksky.apiKey` l'app usa una **sorgente di qualità del cielo simulata** e lo segnala nella UI.
+   - Qualità del cielo: di default **World Atlas 2015** (tile scaricate su richiesta, vedi sotto).
+     Finché le tile non sono pubblicate, imposta `sky.source=simulated` per sviluppare.
 3. `./gradlew :app:assembleDebug` · test: `./gradlew :app:testDebugUnitTest`
 
 ## Architettura
@@ -26,7 +27,9 @@ WorkManager (RefreshWorker, 6 h) ───────────────�
 |---|---|
 | `domain/` | Kotlin puro, nessuna dipendenza Android: modelli, `AstroScoreCalculator`, `NightForecastInterpreter`, `Bortle`, `Geo`. Testato su JVM. |
 | `data/remote/` | DTO (`LightPollutionResponse`, `AstroForecastResponse`, `OverpassResponse`, `NominatimPlace`), API Retrofit, `NetworkModule`, mapper. |
-| `data/sky/` | `SkyQualitySource` + `DarkSkySitesSource` + `SimulatedSkyQualitySource`. |
+| `data/sky/` | `SkyQualitySource` + `WorldAtlasSkyQualitySource` (atlante) + `DarkSkySitesSource` + `SimulatedSkyQualitySource`. |
+| `data/sky/atlas/` | `SkyTile` (formato binario + interpolazione bilineare), `SkyTileStore` (download/cache), manifest. |
+| `tools/` | `build_sky_tiles.py`: genera le tile dal GeoTIFF del World Atlas. Guida in `tools/README.md`. |
 | `data/local/` | Room: `spots`, `forecasts` (per cella 0.1°), `parkings`. |
 | `data/repository/` | `AstroRepository` (cache + TTL + fallback), mapping errori → `DataError`. |
 | `ui/` | `MapScreen`, `SpotMap` (MapLibre in `AndroidView`), `SpotDetailSheet`, `SettingsScreen`, `AboutScreen`. |
@@ -62,7 +65,23 @@ Una `GeoJsonSource` con data-driven styling. I layer, dal basso verso l'alto:
 
 I badge sono bitmap perché lo style raster non ha `glyphs`.
 
+### Qualità del cielo: World Atlas 2015 offline
+
+```
+GeoTIFF 2.9 GB ──(tools/build_sky_tiles.py, una volta)──▶ tile 5°×5° SQM u8 gzip + manifest.json
+                                                            │  GitHub Release sky-atlas-wa2015
+App: tocchi un punto ─▶ tile in RAM? ─▶ su disco? ─▶ download (~decine di KB) ─▶ filesDir, per sempre
+```
+- SQM = −2.5·log10((artificiale + 0.171168 mcd/m²) / 1.08·10⁸), quantizzato a passi di 0.025 mag.
+- Lettura con interpolazione bilineare; tile assente dal manifest = ogni pixel Bortle 1.
+- Manifest ricontrollato ogni 30 giorni; nuova `version` → cache vecchia cancellata.
+- Il Worker in background scarica le tile dei preferiti (uso offline in montagna).
+- Se cambi sorgente, i valori in cache prodotti dalla sorgente precedente vengono rimpiazzati.
+
 ## Note e limiti noti
+
+- **World Atlas**: modella il cielo del 2014–2015 allo zenit; zone passate ai LED possono essere
+  peggiorate. Licenza CC BY-NC 4.0 (uso non commerciale).
 
 - **DarkSkySites**: lo schema dell'API non è documentato pubblicamente. `LightPollutionResponse.fromJson`
   è tollerante (chiavi alternative, stringhe numeriche, annidamento sotto `data`/`result`); base URL e path

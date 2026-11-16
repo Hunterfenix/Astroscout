@@ -38,6 +38,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Sorgente qualità del cielo: auto | atlas | darksky | simulated
+        buildConfigField("String", "SKY_SOURCE", cfg("sky.source", "auto").asBuildConfigString())
+        buildConfigField("String", "SKY_ATLAS_BASE_URL", cfg("skyatlas.baseUrl", "").asBuildConfigString())
         buildConfigField("String", "DARKSKY_BASE_URL", cfg("darksky.baseUrl", "https://www.darkskysites.com/").asBuildConfigString())
         buildConfigField("String", "DARKSKY_PATH", cfg("darksky.path", "api/v1/sky-quality").asBuildConfigString())
         buildConfigField("String", "DARKSKY_API_KEY", cfg("darksky.apiKey", "").asBuildConfigString())
@@ -109,4 +112,5 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 }

@@ -13,6 +13,8 @@ sealed interface DataError {
     /** HTTP 429, o Overpass 504 "server too busy". */
     data class RateLimited(override val service: Service) : DataError
     data class Http(override val service: Service, val code: Int) : DataError
+    /** Il punto è fuori dall'area coperta dalla fonte dati (es. atlante oltre 85° N). */
+    data class OutOfCoverage(override val service: Service) : DataError
     data class InvalidResponse(override val service: Service, val detail: String?) : DataError
     data class Unknown(override val service: Service, val detail: String?) : DataError
 }

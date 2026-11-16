@@ -2,10 +2,22 @@
 # sdk.dir viene scritto da Android Studio automaticamente.
 # sdk.dir=/path/to/Android/sdk
 
+# --- Sorgente qualità del cielo ------------------------------------------------------
+# auto      = atlas se skyatlas.baseUrl è impostato, altrimenti darksky se c'è la chiave,
+#             altrimenti simulated
+# atlas     = World Atlas 2015 (Falchi et al.), tile scaricate su richiesta e tenute offline
+# darksky   = API DarkSkySites (richiede chiave)
+# simulated = modello semplificato, SOLO per sviluppo
+sky.source=auto
+
+# Cartella HTTP(S) che contiene manifest.json e le tile *.bin.gz generate con
+# tools/build_sky_tiles.py (es. gli asset di una GitHub Release del repo, che deve essere pubblico).
+skyatlas.baseUrl=https://github.com/Hunterfenix/Astroscout/releases/download/sky-atlas-wa2015/
+
 # --- DarkSkySites (inquinamento luminoso) -------------------------------------------
 # L'API non ha uno schema pubblico documentato: base URL e path sono configurabili.
-# Se darksky.apiKey è vuota (o darksky.useSimulated=true) l'app usa la sorgente
-# SIMULATA (modello deterministico basato sulle grandi città) e lo segnala nella UI.
+# Usato solo con sky.source=darksky (o auto senza atlante). darksky.useSimulated=true
+# forza la sorgente simulata (equivale a sky.source=simulated).
 darksky.baseUrl=https://www.darkskysites.com/
 darksky.path=api/v1/sky-quality
 darksky.apiKey=

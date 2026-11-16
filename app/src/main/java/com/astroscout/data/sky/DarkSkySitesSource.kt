@@ -14,6 +14,8 @@ class DarkSkySitesSource(
     private val apiKey: String?,
 ) : SkyQualitySource {
 
+    override val type = SkyQualitySourceType.DARKSKYSITES
+
     override suspend fun fetch(point: GeoPoint): SkyQuality {
         val raw = api.skyQuality(path.trimStart('/'), point.lat, point.lon, apiKey?.takeIf { it.isNotBlank() })
         val parsed = LightPollutionResponse.fromJson(raw)
