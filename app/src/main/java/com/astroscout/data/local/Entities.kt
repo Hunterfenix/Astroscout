@@ -47,3 +47,21 @@ data class ParkingCacheEntity(
     val json: String,
     val fetchedAt: Long,
 )
+
+/** Risposta Open-Meteo grezza per cella meteo (stessa cella 0.1° di [ForecastEntity]). */
+@Entity(tableName = "meteo")
+data class MeteoEntity(
+    @PrimaryKey val cellId: String,
+    val json: String,
+    val fetchedAt: Long,
+)
+
+/**
+ * Quota s.l.m. per punto (id = [com.astroscout.domain.model.GeoPoint.id], ~11 m).
+ * La quota non cambia: nessuna scadenza. Usata per spot e parcheggi.
+ */
+@Entity(tableName = "elevations")
+data class ElevationEntity(
+    @PrimaryKey val pointId: String,
+    val meters: Double,
+)

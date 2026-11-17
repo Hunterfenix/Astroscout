@@ -112,6 +112,21 @@ class SkyTileStore(
         return SkyAtlasSample(sqm, id, isDarkDefault = false)
     }
 
+    /**
+     * Tile per l'overlay della mappa (angolo sud-ovest [latSouth], [lonWest]).
+     * null = niente da disegnare: tile tutta buia (assente dal manifest) o fuori copertura.
+     */
+    suspend fun tileForOverlay(latSouth: Int, lonWest: Int): SkyTile? {
+        val m = manifest()
+        val cLat = latSouth + m.tileDeg / 2.0
+        val cLon = lonWest + m.tileDeg / 2.0
+        if (!m.isCovered(cLat, cLon)) return null
+        val id = SkyTile.tileId(latSouth, lonWest)
+        return if (id in tileSet) tile(m, id) else null
+    }
+
+    suspend fun tileDeg(): Int = manifest().tileDeg
+
     /** Scarica in anticipo le tile che coprono i punti dati (uso offline). Ritorna quante ne ha scaricate. */
     suspend fun prefetch(points: List<Pair<Double, Double>>): Int {
         val m = manifest()

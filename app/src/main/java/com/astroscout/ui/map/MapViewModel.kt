@@ -10,6 +10,8 @@ import com.astroscout.data.repository.AstroRepository
 import com.astroscout.data.repository.RefreshReport
 import com.astroscout.data.settings.AppSettings
 import com.astroscout.data.settings.SettingsRepository
+import com.astroscout.data.sky.atlas.SkyTile
+import com.astroscout.data.sky.atlas.SkyTileStore
 import com.astroscout.domain.geo.Geo
 import com.astroscout.domain.model.DataError
 import com.astroscout.domain.model.Fetched
@@ -26,7 +28,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -48,7 +55,17 @@ data class MapUiState(
     val search: SearchUiState = SearchUiState(),
     val parkingRadiusMeters: Int = AppSettings().parkingRadiusMeters,
     val isSkySimulated: Boolean = false,
+    /** Overlay inquinamento luminoso: disponibile solo con la sorgente World Atlas. */
+    val overlayAvailable: Boolean = false,
+    val overlayEnabled: Boolean = false,
+    val overlayTiles: List<SkyTile> = emptyList(),
+    val overlayStatus: OverlayStatus = OverlayStatus.OFF,
 )
+
+enum class OverlayStatus { OFF, LOADING, SHOWN, ZOOM_IN, ERROR }
+
+/** Rettangolo visibile della mappa (gradi). */
+data class GeoBounds(val south: Double, val west: Double, val north: Double, val east: Double)
 
 sealed interface ParkingUiState {
     data object Idle : ParkingUiState
@@ -87,6 +104,7 @@ class MapViewModel(
     private val repository: AstroRepository,
     private val settingsRepository: SettingsRepository,
     private val isSkySimulated: Boolean,
+    private val skyAtlas: SkyTileStore? = null,
 ) : ViewModel() {
 
     private val gridIds = MutableStateFlow<Set<String>>(emptySet())
@@ -96,6 +114,8 @@ class MapViewModel(
     private val scanning = MutableStateFlow(false)
     private val parkings = MutableStateFlow<ParkingUiState>(ParkingUiState.Idle)
     private val search = MutableStateFlow(SearchUiState())
+    private val overlayTiles = MutableStateFlow<List<SkyTile>>(emptyList())
+    private val overlayStatus = MutableStateFlow(OverlayStatus.OFF)
 
     private val filter = SpotFilter()
     private val settings: StateFlow<AppSettings> =
@@ -108,9 +128,15 @@ class MapViewModel(
     private val _events = Channel<MapEvent>(Channel.BUFFERED)
     val events: Flow<MapEvent> = _events.receiveAsFlow()
 
-    private data class Transient(val scanning: Boolean, val search: SearchUiState, val radius: Int)
+    private data class Transient(
+        val scanning: Boolean,
+        val search: SearchUiState,
+        val settings: AppSettings,
+        val overlayTiles: List<SkyTile>,
+        val overlayStatus: OverlayStatus,
+    )
 
-    private val transient = combine(scanning, search, settings) { sc, se, st -> Transient(sc, se, st.parkingRadiusMeters) }
+    private val transient = combine(scanning, search, settings, overlayTiles, overlayStatus, ::Transient)
 
     val uiState: StateFlow<MapUiState> =
         combine(spots, selectedId, onlyGood, parkings, transient) { all, sel, good, park, t ->
@@ -124,8 +150,12 @@ class MapViewModel(
                 onlyGoodSpots = good,
                 isScanning = t.scanning,
                 search = t.search,
-                parkingRadiusMeters = t.radius,
+                parkingRadiusMeters = t.settings.parkingRadiusMeters,
                 isSkySimulated = isSkySimulated,
+                overlayAvailable = skyAtlas != null,
+                overlayEnabled = skyAtlas != null && t.settings.showLightPollutionOverlay,
+                overlayTiles = t.overlayTiles,
+                overlayStatus = t.overlayStatus,
             )
         }.stateIn(
             scope = viewModelScope,
@@ -141,9 +171,66 @@ class MapViewModel(
     var lastCamera: Pair<GeoPoint, Double> = GeoPoint(42.5, 12.5) to 5.5 // Italia
         private set
 
-    fun onCameraIdle(center: GeoPoint, zoom: Double) {
-        lastCamera = center to zoom
+    private var lastBounds: GeoBounds? = null
+    private var overlayJob: Job? = null
+
+    init {
+        // Ricarica l'overlay quando l'utente lo accende/spegne (anche da un altro schermo).
+        viewModelScope.launch {
+            settings.map { it.showLightPollutionOverlay }.distinctUntilChanged().collect { reloadOverlay() }
+        }
     }
+
+    fun onCameraIdle(center: GeoPoint, zoom: Double, bounds: GeoBounds? = null) {
+        lastCamera = center to zoom
+        if (bounds != null) {
+            lastBounds = bounds
+            reloadOverlay()
+        }
+    }
+
+    fun onToggleOverlay() {
+        viewModelScope.launch { settingsRepository.setOverlay(!settings.value.showLightPollutionOverlay) }
+    }
+
+    /**
+     * Carica le tile dell'atlante che coprono la zona visibile. Sotto zoom ~4.5 (o oltre 12 tile)
+     * chiede di avvicinarsi: a scala continentale l'overlay pesa e serve a poco.
+     */
+    private fun reloadOverlay() {
+        val atlas = skyAtlas
+        val b = lastBounds
+        overlayJob?.cancel()
+        if (atlas == null || !settings.value.showLightPollutionOverlay) {
+            overlayTiles.value = emptyList(); overlayStatus.value = OverlayStatus.OFF; return
+        }
+        if (b == null) return
+        overlayJob = viewModelScope.launch {
+            if (lastCamera.second < OVERLAY_MIN_ZOOM) {
+                overlayTiles.value = emptyList(); overlayStatus.value = OverlayStatus.ZOOM_IN; return@launch
+            }
+            overlayStatus.value = OverlayStatus.LOADING
+            try {
+                val deg = atlas.tileDeg()
+                val lats = (floorTo(b.south, deg)..floorTo(b.north.coerceAtMost(84.9), deg) step deg).toList()
+                val lons = (floorTo(b.west, deg)..floorTo(b.east, deg) step deg).toList()
+                if (lats.size * lons.size > OVERLAY_MAX_TILES) {
+                    overlayTiles.value = emptyList(); overlayStatus.value = OverlayStatus.ZOOM_IN; return@launch
+                }
+                val tiles = coroutineScope {
+                    lats.flatMap { la -> lons.map { lo -> async { atlas.tileForOverlay(la, lo) } } }.awaitAll()
+                }.filterNotNull()
+                overlayTiles.value = tiles
+                overlayStatus.value = OverlayStatus.SHOWN
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                overlayStatus.value = OverlayStatus.ERROR
+            }
+        }
+    }
+
+    private fun floorTo(v: Double, deg: Int): Int = (kotlin.math.floor(v / deg) * deg).toInt()
 
     // ------------------------------------------------------------------------------- azioni UI
 
@@ -276,10 +363,18 @@ class MapViewModel(
     }
 
     companion object {
+        private const val OVERLAY_MIN_ZOOM = 4.5
+        private const val OVERLAY_MAX_TILES = 12
+
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as AstroScoutApp
-                MapViewModel(app.container.repository, app.container.settings, app.container.isSkyQualitySimulated)
+                MapViewModel(
+                    app.container.repository,
+                    app.container.settings,
+                    app.container.isSkyQualitySimulated,
+                    app.container.skyAtlas,
+                )
             }
         }
     }

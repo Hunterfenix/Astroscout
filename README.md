@@ -55,6 +55,34 @@ cap: copertura ≥ 80 % o pioggia → score ≤ 20   (disattivabile)
 Pesi di default 50/30/20/0, modificabili in Impostazioni (normalizzati automaticamente).
 Finestra notturna: 20:00–04:00 ora locale; dopo mezzanotte si usa la notte in corso.
 
+### Notte astronomica, Luna e Via Lattea (calcolate sul telefono)
+
+`domain/astro/`: effemeridi di Meeus (Sole cap. 25, Luna cap. 47, fase cap. 48, tempo siderale
+cap. 12), campionate ogni 5′ da mezzogiorno a mezzogiorno. Ricavano tramonto e alba, il buio
+astronomico reale (Sole < −18°; se non c'è si usa il nautico), sorgere e tramonto della Luna, la
+fase, la finestra più lunga senza Luna e l'altezza del nucleo galattico. Il meteo viene mediato su
+questa finestra reale, non su 20–04 fisse. Verificate su eclissi 2024/2025 e solstizi
+(`EphemerisTest`).
+
+### Meteo dettagliato e quota (Open-Meteo)
+
+Nubi basse, medie e alte, rugiada, vento e precipitazioni da modelli a 2–7 km (ICON/ECMWF), cache
+per cella di 0.1° e TTL 2 h. Quote di spot e parcheggi da `v1/elevation`, a blocchi di 100 punti.
+Avvisi per condensa (margine < 2 °C o umidità ≥ 92 %), raffiche ≥ 36 km/h e velature alte.
+
+### Score
+
+`score = 100·Σwᵢsᵢ/Σwᵢ` con: inquinamento luminoso, nubi, seeing, trasparenza, **Luna e crepuscolo**
+`f + (1−f)(1−k)`, **quota** (0–2000 m). Default 0.5/0.3/0.2/0/0.25/0.05, modificabili.
+
+### Overlay inquinamento luminoso e notifiche
+
+- Le tile dell'atlante vengono colorate e **riproiettate in Web Mercator** (`SkyOverlayRenderer`),
+  poi mostrate come `ImageSource` + `RasterLayer` sotto i marker.
+- Il Worker ogni 6 h notifica il miglior preferito con score ≥ soglia, se la notte buia inizia
+  entro 14 h. Al massimo una notifica per notte.
+- DB v2: migrazione esplicita 1→2 (solo nuove tabelle `meteo` ed `elevations`), i preferiti restano.
+
 ### Mappa
 
 Una `GeoJsonSource` con data-driven styling. I layer, dal basso verso l'alto:

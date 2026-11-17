@@ -49,6 +49,9 @@ class SkyTile(
 
     val id: String get() = tileId(latSouth, lonWest)
 
+    /** Valore quantizzato grezzo 0..254 (255 = nodata). */
+    fun rawAt(row: Int, col: Int): Int = data[row * width + col].toInt() and 0xFF
+
     private fun sqmAt(row: Int, col: Int): Float? {
         val q = data[row * width + col].toInt() and 0xFF
         return if (q == NODATA) null else sqmMin + q * sqmStep

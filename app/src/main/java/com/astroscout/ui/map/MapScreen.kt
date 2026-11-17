@@ -1,6 +1,13 @@
 package com.astroscout.ui.map
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -110,6 +117,7 @@ fun MapScreen(
                 onLongPress = viewModel::onMapLongPress,
                 onCameraIdle = viewModel::onCameraIdle,
                 modifier = Modifier.fillMaxSize(),
+                overlayTiles = if (state.overlayEnabled) state.overlayTiles else emptyList(),
             )
 
             Column(
@@ -140,19 +148,45 @@ fun MapScreen(
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     FilterChip(
                         selected = state.onlyGoodSpots,
                         onClick = viewModel::onToggleGoodFilter,
                         label = { Text(stringResource(R.string.filter_good)) },
                         leadingIcon = { Icon(Icons.Filled.Star, null, Modifier.size(18.dp)) },
                     )
+                    if (state.overlayAvailable) {
+                        FilterChip(
+                            selected = state.overlayEnabled,
+                            onClick = viewModel::onToggleOverlay,
+                            label = { Text(stringResource(R.string.overlay_chip)) },
+                            leadingIcon = {
+                                if (state.overlayStatus == OverlayStatus.LOADING) {
+                                    CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Filled.Info, null, Modifier.size(18.dp))
+                                }
+                            },
+                        )
+                    }
                     if (state.isSkySimulated) {
                         Text(
                             stringResource(R.string.simulated_banner),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error,
                         )
+                    }
+                }
+                if (state.overlayEnabled) {
+                    when (state.overlayStatus) {
+                        OverlayStatus.SHOWN -> LightPollutionLegend()
+                        OverlayStatus.ZOOM_IN -> OverlayHint(stringResource(R.string.overlay_zoom_in))
+                        OverlayStatus.ERROR -> OverlayHint(stringResource(R.string.overlay_error))
+                        else -> Unit
                     }
                 }
                 if (state.allSpots.isEmpty()) {
@@ -214,6 +248,30 @@ private fun SearchBar(
             )
             IconButton(onClick = onOpenSettings) { Icon(Icons.Filled.Settings, stringResource(R.string.settings)) }
             IconButton(onClick = onOpenAbout) { Icon(Icons.Filled.Info, stringResource(R.string.about)) }
+        }
+    }
+}
+
+@Composable
+private fun OverlayHint(text: String) {
+    ElevatedCard { Text(text, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium) }
+}
+
+/** Scala colori SQM dell'overlay: da cielo naturale (sinistra) a cittadino (destra). */
+@Composable
+private fun LightPollutionLegend() {
+    val stops = remember { com.astroscout.data.sky.atlas.SkyOverlayRenderer.legend() }
+    ElevatedCard {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+            Row(Modifier.width(220.dp).height(10.dp)) {
+                stops.forEach { (_, color) ->
+                    Box(Modifier.weight(1f).fillMaxHeight().background(Color(color)))
+                }
+            }
+            Row(Modifier.width(220.dp)) {
+                Text("SQM 22 · B1", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                Text("18 · B9", style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }

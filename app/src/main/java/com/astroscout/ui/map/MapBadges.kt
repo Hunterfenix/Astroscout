@@ -28,7 +28,7 @@ object MapBadges {
     }
 
     fun badgeId(spot: Spot): String =
-        "badge_${spot.forecast?.condition?.name ?: "NA"}_${spot.score?.total ?: -1}"
+        "badge_${spot.condition?.name ?: "NA"}_${spot.score?.total ?: -1}"
 
     fun colorHex(spot: Spot): String = when (spot.sky?.bortle?.let(Bortle::band)) {
         Bortle.Band.DARK -> "#2E7D32"
@@ -39,7 +39,7 @@ object MapBadges {
 
     fun render(spot: Spot, density: Float): Bitmap {
         val label = buildString {
-            append(weatherEmoji(spot.forecast?.condition))
+            append(weatherEmoji(spot.condition))
             spot.score?.let { append(' ').append(it.total) }
         }
         val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

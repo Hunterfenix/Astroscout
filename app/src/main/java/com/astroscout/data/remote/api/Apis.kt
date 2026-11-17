@@ -1,6 +1,8 @@
 package com.astroscout.data.remote.api
 
 import com.astroscout.data.remote.dto.AstroForecastResponse
+import com.astroscout.data.remote.dto.ElevationResponse
+import com.astroscout.data.remote.dto.OpenMeteoResponse
 import com.astroscout.data.remote.dto.NominatimPlace
 import com.astroscout.data.remote.dto.OverpassResponse
 import kotlinx.serialization.json.JsonElement
@@ -63,4 +65,36 @@ interface NominatimApi {
         @Query("limit") limit: Int = 8,
         @Query("accept-language") language: String? = null,
     ): List<NominatimPlace>
+}
+
+/**
+ * Open-Meteo (gratuito, senza chiave, uso non commerciale). `best_match` sceglie il modello
+ * migliore per il punto: in Europa ICON-D2 (2 km) / ICON-EU (7 km) / ECMWF IFS, molto più fini
+ * di GFS (~25 km) usato da 7Timer!.
+ */
+interface OpenMeteoApi {
+    @GET("v1/forecast")
+    suspend fun forecast(
+        @Query("latitude") lat: Double,
+        @Query("longitude") lon: Double,
+        @Query("hourly") hourly: String = HOURLY,
+        @Query("models") models: String = "best_match",
+        @Query("forecast_days") days: Int = 3,
+        @Query("timezone") timezone: String = "GMT",
+        @Query("timeformat") timeFormat: String = "unixtime",
+        @Query("wind_speed_unit") windUnit: String = "ms",
+    ): OpenMeteoResponse
+
+    /** Fino a 100 coordinate per chiamata (liste separate da virgola). */
+    @GET("v1/elevation")
+    suspend fun elevation(
+        @Query("latitude") latitudes: String,
+        @Query("longitude") longitudes: String,
+    ): ElevationResponse
+
+    companion object {
+        const val HOURLY = "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high," +
+            "temperature_2m,dew_point_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,precipitation"
+        const val MAX_ELEVATION_BATCH = 100
+    }
 }

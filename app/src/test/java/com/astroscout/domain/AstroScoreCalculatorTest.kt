@@ -28,7 +28,9 @@ class AstroScoreCalculatorTest {
 
     @Test
     fun `perfect conditions score 100`() {
-        val s = calc.compute(sky(22.0, 1), night(0.0, seeing = 1.0, transp = 1.0), ScoreWeights.DEFAULT)!!
+        // pesi "originali" 50/30/20 senza Luna e quota: nessuna componente mancante → non parziale
+        val legacy = ScoreWeights(0.5, 0.3, 0.2, 0.0, moon = 0.0, altitude = 0.0)
+        val s = calc.compute(sky(22.0, 1), night(0.0, seeing = 1.0, transp = 1.0), legacy)!!
         assertEquals(100, s.total)
         assertFalse(s.isPartial)
     }

@@ -64,3 +64,30 @@ interface ParkingDao {
     @Upsert
     suspend fun upsert(entity: ParkingCacheEntity)
 }
+
+@Dao
+interface MeteoDao {
+    @Query("SELECT * FROM meteo WHERE cellId IN (:cellIds)")
+    fun observe(cellIds: List<String>): Flow<List<MeteoEntity>>
+
+    @Query("SELECT * FROM meteo WHERE cellId = :cellId")
+    suspend fun get(cellId: String): MeteoEntity?
+
+    @Upsert
+    suspend fun upsert(entity: MeteoEntity)
+
+    @Query("DELETE FROM meteo WHERE fetchedAt < :before")
+    suspend fun pruneOlderThan(before: Long): Int
+}
+
+@Dao
+interface ElevationDao {
+    @Query("SELECT * FROM elevations WHERE pointId IN (:ids)")
+    fun observe(ids: List<String>): Flow<List<ElevationEntity>>
+
+    @Query("SELECT * FROM elevations WHERE pointId IN (:ids)")
+    suspend fun get(ids: List<String>): List<ElevationEntity>
+
+    @Upsert
+    suspend fun upsertAll(entities: List<ElevationEntity>)
+}

@@ -1,5 +1,7 @@
 package com.astroscout.ui.map
 
+import android.graphics.Bitmap
+import android.graphics.PointF
 import android.graphics.RectF
 import android.os.Bundle
 import androidx.compose.runtime.Composable
@@ -18,12 +20,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.astroscout.data.sky.atlas.SkyOverlayRenderer
+import com.astroscout.data.sky.atlas.SkyTile
 import com.astroscout.domain.model.GeoPoint
 import com.astroscout.domain.model.Spot
 import com.astroscout.domain.scoring.Bortle
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngQuad
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
@@ -31,8 +38,10 @@ import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.RasterLayer
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.android.style.sources.ImageSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
@@ -82,8 +91,9 @@ fun SpotMap(
     darkStyle: Boolean,
     onSpotClick: (String) -> Unit,
     onLongPress: (GeoPoint) -> Unit,
-    onCameraIdle: (GeoPoint, Double) -> Unit,
+    onCameraIdle: (GeoPoint, Double, GeoBounds?) -> Unit,
     modifier: Modifier = Modifier,
+    overlayTiles: List<SkyTile> = emptyList(),
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current.density
@@ -126,8 +136,14 @@ fun SpotMap(
                     true
                 }
                 map.addOnCameraIdleListener {
+                    // Angoli dello schermo → coordinate (API stabile tra le versioni di MapLibre).
+                    val bounds = runCatching {
+                        val nw = map.projection.fromScreenLocation(PointF(0f, 0f))
+                        val se = map.projection.fromScreenLocation(PointF(this@apply.width.toFloat(), this@apply.height.toFloat()))
+                        GeoBounds(se.latitude, nw.longitude, nw.latitude, se.longitude)
+                    }.getOrNull()
                     map.cameraPosition.target?.let { t ->
-                        currentOnCameraIdle(GeoPoint(t.latitude, t.longitude), map.cameraPosition.zoom)
+                        currentOnCameraIdle(GeoPoint(t.latitude, t.longitude), map.cameraPosition.zoom, bounds)
                     }
                 }
                 state.map = map
@@ -174,6 +190,41 @@ fun SpotMap(
         (s.getLayer(LAYER_SELECTED) as? CircleLayer)?.setFilter(
             Expression.eq(Expression.get("id"), Expression.literal(selectedId ?: "__none__"))
         )
+    }
+
+    // Overlay inquinamento luminoso: una ImageSource + RasterLayer per tile, SOTTO i marker.
+    // Le bitmap (600×600, riproiettate in Mercator) si generano su Dispatchers.Default e si
+    // tengono in cache: rientrare in una zona già vista non ricalcola nulla.
+    val overlayBitmaps = remember { HashMap<String, Bitmap>() }
+    val shownOverlay = remember { mutableSetOf<String>() }
+    LaunchedEffect(style, overlayTiles) {
+        val s = style ?: return@LaunchedEffect
+        val wanted = overlayTiles.associateBy { "lp-" + it.id }
+        // rimuovi quelle non più visibili
+        (shownOverlay - wanted.keys).forEach { id ->
+            s.getLayer(id)?.let { s.removeLayer(it) }
+            s.getSource(id)?.let { s.removeSource(it) }
+            shownOverlay.remove(id)
+        }
+        for ((id, tile) in wanted) {
+            if (id in shownOverlay) continue
+            val bmp = overlayBitmaps[id] ?: withContext(Dispatchers.Default) {
+                val px = SkyOverlayRenderer.render(tile)
+                Bitmap.createBitmap(px, tile.width, px.size / tile.width, Bitmap.Config.ARGB_8888)
+            }.also { overlayBitmaps[id] = it }
+            if (overlayBitmaps.size > 24) overlayBitmaps.keys.firstOrNull { it !in wanted }?.let(overlayBitmaps::remove)
+            val n = (tile.latSouth + tile.tileDeg).toDouble().coerceAtMost(85.0)
+            val so = tile.latSouth.toDouble().coerceAtLeast(-85.0)
+            val w = tile.lonWest.toDouble()
+            val e = (tile.lonWest + tile.tileDeg).toDouble()
+            val quad = LatLngQuad(LatLng(n, w), LatLng(n, e), LatLng(so, e), LatLng(so, w))
+            s.addSource(ImageSource(id, quad, bmp))
+            s.addLayerBelow(
+                RasterLayer(id, id).withProperties(PropertyFactory.rasterOpacity(0.7f)),
+                LAYER_HALO,
+            )
+            shownOverlay += id
+        }
     }
 
     AndroidView(factory = { mapView }, modifier = modifier)

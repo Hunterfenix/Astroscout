@@ -77,6 +77,7 @@ class AppContainer(context: Context) {
             sevenTimer = network.sevenTimer,
             overpass = network.overpass,
             nominatim = network.nominatim,
+            openMeteo = network.openMeteo,
             json = network.json,
             settings = settings,
         )

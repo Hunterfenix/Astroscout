@@ -75,7 +75,7 @@
     <!-- About -->
     <string name="about_intro">AstroScout helps you find the best spot for astrophotography by combining light pollution, astronomical weather and nearby parking.</string>
     <string name="about_simulated">Warning: no DarkSkySites API key is configured. Light pollution values come from a simplified SIMULATION and must not be used to plan real sessions.</string>
-    <string name="about_score_formula" formatted="false">Astro Score = 100 × Σ(weight × sub-score) / Σ(weights). Light pollution: linear on SQM from 17.5 to 22.0 mag/arcsec². Clouds: 1 − mean cover over the night window (0 if precipitation). Seeing and transparency: (8 − 7Timer! index) / 7. With cover ≥ 80% or precipitation the score is capped at 20.</string>
+    <string name="about_score_formula" formatted="false">Astro Score = 100 × Σ(weight × sub-score) / Σ(weights). Light pollution: linear on SQM from 17.5 to 22.0 mag/arcsec². Clouds: 1 − mean cover during astronomical darkness (Open-Meteo, else 7Timer!; 0 if precipitation). Seeing and transparency: (8 − 7Timer! index) / 7. Moon: f + (1 − f)·(1 − k), f = moon-free share of the dark hours, k = illuminated fraction (×0.6 with only nautical twilight). Altitude: 0 m → 0, 2000 m → 1. With cover ≥ 80% or precipitation the score is capped at 20. Sun and Moon are computed on the phone (Meeus algorithms).</string>
     <string name="credit_osm_title">OpenStreetMap</string>
     <string name="credit_osm_body">Map data © OpenStreetMap contributors, available under the Open Database License (ODbL). Map tiles © OpenStreetMap.</string>
     <string name="credit_overpass_title">Overpass API</string>
@@ -102,4 +102,42 @@
     <string name="atlas_none">No tiles downloaded yet.</string>
     <string name="atlas_clear">Delete downloaded tiles</string>
     <string name="atlas_help">Tiles (5°×5°, about 100 KB) are downloaded the first time you look at an area and kept for offline use. Favorites are kept up to date in the background.</string>
+
+    <!-- Night sky, weather, overlay, notifications -->
+    <string name="service_weather">Detailed weather</string>
+    <string name="metric_moon">Moon &amp; twilight</string>
+    <string name="metric_altitude">Altitude</string>
+    <string name="moon_free_pct">%1$d%% of night moon-free</string>
+    <string name="section_night">Tonight’s sky</string>
+    <string name="section_weather">Detailed weather (dark hours)</string>
+    <string name="dark_astronomical">Astronomical darkness</string>
+    <string name="dark_nautical">Only nautical twilight</string>
+    <string name="dark_none">No real darkness (white night)</string>
+    <string name="sun_set_rise">Sunset %1$s · sunrise %2$s</string>
+    <string name="moon_line">Moon %1$d%% %2$s · rises %3$s · sets %4$s</string>
+    <string name="moon_waxing">waxing</string>
+    <string name="moon_waning">waning</string>
+    <string name="moon_free_window">Moon-free: %1$s – %2$s (%3$s)</string>
+    <string name="moon_all_night">Moon above the horizon all night</string>
+    <string name="milky_way_good">Milky Way core: best %1$s – %2$s, max %3$d° high towards %4$s at %5$s</string>
+    <string name="milky_way_low">Milky Way core: max %1$d° high, but not in moon-free darkness</string>
+    <string name="milky_way_none">Milky Way core: below the horizon during darkness (season)</string>
+    <string name="cloud_layers">Clouds low %1$s · mid %2$s · high %3$s</string>
+    <string name="temp_dew">Min %1$s °C · dew margin %2$s °C · humidity up to %3$s%%</string>
+    <string name="wind_line">Wind %1$s km/h · gusts up to %2$s km/h</string>
+    <string name="warn_dew">Dew risk</string>
+    <string name="warn_wind">Strong gusts</string>
+    <string name="warn_high_cloud">High thin clouds</string>
+    <string name="overlay_chip">Light pollution</string>
+    <string name="overlay_zoom_in">Zoom in to see the light pollution map</string>
+    <string name="overlay_error">Light pollution map unavailable (offline?)</string>
+    <string name="notify_title">Good-night alerts</string>
+    <string name="notify_help">Notifies you when a favorite spot has a good night ahead (at most once per night).</string>
+    <string name="notify_threshold">Minimum score: %1$d</string>
+    <string name="notif_channel_name">Good nights</string>
+    <string name="notif_channel_desc">Alerts when a favorite spot has a good night ahead</string>
+    <string name="notif_title">Tonight: %1$s (score %2$d)</string>
+    <string name="notif_body">Dark %1$s – %2$s · Moon %3$d%% · clouds %4$s%%</string>
+    <string name="credit_openmeteo_title">Open-Meteo</string>
+    <string name="credit_openmeteo_body">Detailed weather and elevation by Open-Meteo.com (CC BY 4.0), using DWD ICON, ECMWF IFS and other national models, and Copernicus DEM elevation data.</string>
 </resources>

@@ -1,5 +1,8 @@
 package com.astroscout.domain.model
 
+import com.astroscout.domain.astro.AstroNight
+import com.astroscout.domain.forecast.NightForecastInterpreter
+import com.astroscout.domain.forecast.WeatherDetail
 import java.time.Instant
 import java.util.Locale
 
@@ -54,6 +57,8 @@ data class Parking(
     val fee: String?,
     val access: String?,
     val surface: String?,
+    /** Quota s.l.m. in metri (Open-Meteo elevation, DEM 90 m); null se non disponibile. */
+    val elevationM: Double? = null,
 )
 
 /** Pesi relativi (non serve che sommino a 1: [AstroScoreCalculator] normalizza). */
@@ -62,6 +67,10 @@ data class ScoreWeights(
     val cloudCover: Double = 0.3,
     val seeing: Double = 0.2,
     val transparency: Double = 0.0,
+    /** Luna (fase × tempo sopra l'orizzonte) e qualità del crepuscolo. */
+    val moon: Double = 0.25,
+    /** Quota: sopra nebbie e foschie di pianura, aria più secca e trasparente. */
+    val altitude: Double = 0.05,
 ) {
     companion object { val DEFAULT = ScoreWeights() }
 }
@@ -74,6 +83,8 @@ data class AstroScore(
     val cloudCover: Double?,
     val seeing: Double?,
     val transparency: Double?,
+    val moon: Double? = null,
+    val altitude: Double? = null,
     /** true se mancava almeno una componente con peso > 0 e i pesi sono stati rinormalizzati. */
     val isPartial: Boolean,
 )
@@ -95,10 +106,24 @@ data class Spot(
     val sky: SkyQuality?,
     val forecast: NightForecast?,
     val score: AstroScore?,
+    /** Effemeridi della notte (crepuscolo, Luna, Via Lattea): calcolate localmente, sempre disponibili. */
+    val astro: AstroNight? = null,
+    /** Meteo Open-Meteo sulla finestra buia (nubi per strato, rugiada, vento). */
+    val weather: WeatherDetail? = null,
+    val elevationM: Double? = null,
     val skyUpdatedAt: Instant?,
     val forecastUpdatedAt: Instant?,
     /** Dati presenti ma oltre la TTL (es. offline): la UI mostra un badge "cache". */
     val isStale: Boolean,
 ) {
     val isLoaded: Boolean get() = sky != null || forecast != null
+
+    /** Nuvolosità migliore disponibile: Open-Meteo (modelli fini) se c'è, altrimenti 7Timer!. */
+    val cloudPct: Double? get() = weather?.avgCloudPct ?: forecast?.avgCloudCoverPct
+
+    val hasPrecipitation: Boolean
+        get() = (weather?.precipitationMm ?: 0.0) >= 0.2 || forecast?.hasPrecipitation == true
+
+    val condition: WeatherCondition?
+        get() = cloudPct?.let { NightForecastInterpreter.classify(it, hasPrecipitation) }
 }

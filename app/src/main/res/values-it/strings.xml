@@ -73,7 +73,7 @@
     <!-- Informazioni -->
     <string name="about_intro">AstroScout ti aiuta a trovare il miglior punto di ripresa per l\'astrofotografia incrociando inquinamento luminoso, meteo astronomico e parcheggi vicini.</string>
     <string name="about_simulated">Attenzione: nessuna chiave API DarkSkySites configurata. I valori di inquinamento luminoso provengono da una SIMULAZIONE semplificata e non vanno usati per pianificare uscite reali.</string>
-    <string name="about_score_formula" formatted="false">Astro Score = 100 × Σ(peso × sotto-punteggio) / Σ(pesi). Inquinamento luminoso: lineare sull\'SQM da 17.5 a 22.0 mag/arcsec². Nuvole: 1 − copertura media nella finestra notturna (0 se piove). Seeing e trasparenza: (8 − indice 7Timer!) / 7. Con copertura ≥ 80% o precipitazioni il punteggio è limitato a 20.</string>
+    <string name="about_score_formula" formatted="false">Astro Score = 100 × Σ(peso × sotto-punteggio) / Σ(pesi). Inquinamento luminoso: lineare sull’SQM da 17.5 a 22.0 mag/arcsec². Nuvole: 1 − copertura media durante il buio astronomico (Open-Meteo, altrimenti 7Timer!; 0 se piove). Seeing e trasparenza: (8 − indice 7Timer!) / 7. Luna: f + (1 − f)·(1 − k), f = quota di ore buie senza Luna, k = frazione illuminata (×0.6 con solo crepuscolo nautico). Quota: 0 m → 0, 2000 m → 1. Con copertura ≥ 80% o precipitazioni il punteggio è limitato a 20. Sole e Luna sono calcolati sul telefono (algoritmi di Meeus).</string>
     <string name="credit_osm_title">OpenStreetMap</string>
     <string name="credit_osm_body">Dati cartografici © OpenStreetMap contributors, disponibili con licenza Open Database License (ODbL). Tile © OpenStreetMap.</string>
     <string name="credit_overpass_title">Overpass API</string>
@@ -100,4 +100,42 @@
     <string name="atlas_none">Nessuna tile scaricata.</string>
     <string name="atlas_clear">Elimina tile scaricate</string>
     <string name="atlas_help">Le tile (5°×5°, circa 100 KB) vengono scaricate la prima volta che guardi una zona e restano disponibili offline. I preferiti vengono tenuti aggiornati in background.</string>
+
+    <!-- Night sky, weather, overlay, notifications -->
+    <string name="service_weather">Meteo dettagliato</string>
+    <string name="metric_moon">Luna e crepuscolo</string>
+    <string name="metric_altitude">Quota</string>
+    <string name="moon_free_pct">%1$d%% di notte senza Luna</string>
+    <string name="section_night">Il cielo di stanotte</string>
+    <string name="section_weather">Meteo dettagliato (ore buie)</string>
+    <string name="dark_astronomical">Buio astronomico</string>
+    <string name="dark_nautical">Solo crepuscolo nautico</string>
+    <string name="dark_none">Nessun vero buio (notte bianca)</string>
+    <string name="sun_set_rise">Tramonto %1$s · alba %2$s</string>
+    <string name="moon_line">Luna %1$d%% %2$s · sorge %3$s · tramonta %4$s</string>
+    <string name="moon_waxing">crescente</string>
+    <string name="moon_waning">calante</string>
+    <string name="moon_free_window">Senza Luna: %1$s – %2$s (%3$s)</string>
+    <string name="moon_all_night">Luna sopra l’orizzonte tutta la notte</string>
+    <string name="milky_way_good">Nucleo Via Lattea: meglio %1$s – %2$s, alto max %3$d° verso %4$s alle %5$s</string>
+    <string name="milky_way_low">Nucleo Via Lattea: alto max %1$d°, ma non nel buio senza Luna</string>
+    <string name="milky_way_none">Nucleo Via Lattea: sotto l’orizzonte durante il buio (stagione)</string>
+    <string name="cloud_layers">Nubi basse %1$s · medie %2$s · alte %3$s</string>
+    <string name="temp_dew">Min %1$s °C · margine rugiada %2$s °C · umidità fino a %3$s%%</string>
+    <string name="wind_line">Vento %1$s km/h · raffiche fino a %2$s km/h</string>
+    <string name="warn_dew">Rischio condensa</string>
+    <string name="warn_wind">Raffiche forti</string>
+    <string name="warn_high_cloud">Velature alte</string>
+    <string name="overlay_chip">Inquinamento luminoso</string>
+    <string name="overlay_zoom_in">Avvicinati per vedere la mappa dell’inquinamento luminoso</string>
+    <string name="overlay_error">Mappa inquinamento luminoso non disponibile (offline?)</string>
+    <string name="notify_title">Avvisi \"buona notte\"</string>
+    <string name="notify_help">Ti avvisa quando un preferito ha una buona notte in arrivo (al massimo una volta per notte).</string>
+    <string name="notify_threshold">Score minimo: %1$d</string>
+    <string name="notif_channel_name">Buone notti</string>
+    <string name="notif_channel_desc">Avvisi quando un preferito ha una buona notte in arrivo</string>
+    <string name="notif_title">Stanotte: %1$s (score %2$d)</string>
+    <string name="notif_body">Buio %1$s – %2$s · Luna %3$d%% · nubi %4$s%%</string>
+    <string name="credit_openmeteo_title">Open-Meteo</string>
+    <string name="credit_openmeteo_body">Meteo dettagliato e quote da Open-Meteo.com (CC BY 4.0), con modelli DWD ICON, ECMWF IFS e altri servizi nazionali, e dati altimetrici Copernicus DEM.</string>
 </resources>

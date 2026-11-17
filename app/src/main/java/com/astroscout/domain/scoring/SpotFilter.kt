@@ -10,7 +10,7 @@ data class SpotFilter(
     /** Uno spot senza dati per un criterio non lo soddisfa: il filtro deve essere conservativo. */
     fun matches(spot: Spot): Boolean {
         val bortle = spot.sky?.bortle ?: return false
-        val cloud = spot.forecast?.avgCloudCoverPct ?: return false
+        val cloud = spot.cloudPct ?: return false
         return bortle < maxBortleExclusive && cloud < maxCloudPctExclusive
     }
 }

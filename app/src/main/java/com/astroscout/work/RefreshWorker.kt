@@ -10,6 +10,9 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.astroscout.AstroScoutApp
+import kotlinx.coroutines.flow.first
+import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 /**
@@ -32,8 +35,31 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         }
         val report = repo.refreshFavorites()
         repo.prune()
+        runCatching { maybeNotifyGoodNight(container) }
         // Se tutti i preferiti sono falliti (rete instabile) WorkManager riprova con backoff esponenziale.
         return if (report.total > 0 && report.failed == report.total && runAttemptCount < 3) Result.retry() else Result.success()
+    }
+
+    /**
+     * Notifica il miglior preferito con score ≥ soglia, se la sua finestra buia inizia entro 14 h.
+     * Al massimo una notifica per notte (data salvata in DataStore).
+     */
+    private suspend fun maybeNotifyGoodNight(container: com.astroscout.di.AppContainer) {
+        val settings = container.settings.settings.first()
+        if (!settings.notifyGoodNights || !GoodNightNotifier.canNotify(applicationContext)) return
+        val now = Instant.now()
+        val best = container.repository.favoriteSpots()
+            .filter { s ->
+                val a = s.astro ?: return@filter false
+                (s.score?.total ?: 0) >= settings.notifyThreshold &&
+                    a.dark.end.isAfter(now) &&
+                    Duration.between(now, a.dark.start) <= Duration.ofHours(14)
+            }
+            .maxByOrNull { it.score!!.total } ?: return
+        val night = best.astro!!.nightOf.toString()
+        if (container.settings.lastNotifiedNight() == night) return
+        GoodNightNotifier.notify(applicationContext, best)
+        container.settings.setLastNotifiedNight(night)
     }
 
     companion object {

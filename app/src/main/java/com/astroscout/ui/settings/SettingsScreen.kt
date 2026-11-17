@@ -1,5 +1,10 @@
 package com.astroscout.ui.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +23,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -77,6 +86,7 @@ class SettingsViewModel(
     fun setGrid(size: Int, step: Double) = viewModelScope.launch { repo.setGrid(size, step) }
     fun setParkingRadius(m: Int) = viewModelScope.launch { repo.setParkingRadius(m) }
     fun reset() = viewModelScope.launch { repo.reset() }
+    fun setNotifications(enabled: Boolean, threshold: Int) = viewModelScope.launch { repo.setNotifications(enabled, threshold) }
 
     companion object {
         val Factory = viewModelFactory {
@@ -93,7 +103,7 @@ class SettingsViewModel(
 fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory)) {
     val s by vm.settings.collectAsStateWithLifecycle()
     val w = s.weights
-    val sum = (w.lightPollution + w.cloudCover + w.seeing + w.transparency).takeIf { it > 0 } ?: 1.0
+    val sum = (w.lightPollution + w.cloudCover + w.seeing + w.transparency + w.moon + w.altitude).takeIf { it > 0 } ?: 1.0
     fun pct(x: Double) = "${(100 * x / sum).roundToInt()} %"
 
     Scaffold(topBar = {
@@ -112,6 +122,15 @@ fun SettingsScreen(onBack: () -> Unit, vm: SettingsViewModel = viewModel(factory
             WeightSlider(stringResource(R.string.metric_clouds), w.cloudCover, pct(w.cloudCover)) { vm.setWeights(w.copy(cloudCover = it)) }
             WeightSlider(stringResource(R.string.metric_seeing), w.seeing, pct(w.seeing)) { vm.setWeights(w.copy(seeing = it)) }
             WeightSlider(stringResource(R.string.metric_transparency), w.transparency, pct(w.transparency)) { vm.setWeights(w.copy(transparency = it)) }
+            WeightSlider(stringResource(R.string.metric_moon), w.moon, pct(w.moon)) { vm.setWeights(w.copy(moon = it)) }
+            WeightSlider(stringResource(R.string.metric_altitude), w.altitude, pct(w.altitude)) { vm.setWeights(w.copy(altitude = it)) }
+
+            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+            NotificationSettings(
+                enabled = s.notifyGoodNights,
+                threshold = s.notifyThreshold,
+                onChange = { en, th -> vm.setNotifications(en, th) },
+            )
 
             HorizontalDivider(Modifier.padding(vertical = 12.dp))
             Text(stringResource(R.string.grid_title), style = MaterialTheme.typography.titleMedium)
@@ -158,5 +177,40 @@ private fun WeightSlider(label: String, value: Double, normalized: String, onCha
             Text(normalized, style = MaterialTheme.typography.labelLarge)
         }
         Slider(value = value.toFloat(), onValueChange = { onChange((it * 20).roundToInt() / 20.0) }, valueRange = 0f..1f, steps = 19)
+    }
+}
+
+/**
+ * Notifica "buona notte". Su Android 13+ il permesso POST_NOTIFICATIONS va chiesto a runtime:
+ * lo chiediamo solo quando l'utente attiva l'interruttore (contesto chiaro → più probabilità di sì).
+ */
+@Composable
+private fun NotificationSettings(enabled: Boolean, threshold: Int, onChange: (Boolean, Int) -> Unit) {
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        onChange(granted, threshold)
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.notify_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.notify_help), style = MaterialTheme.typography.bodySmall)
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = { on ->
+                val needsPermission = on && Build.VERSION.SDK_INT >= 33 &&
+                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                if (needsPermission) launcher.launch(Manifest.permission.POST_NOTIFICATIONS) else onChange(on, threshold)
+            },
+        )
+    }
+    if (enabled) {
+        Text(stringResource(R.string.notify_threshold, threshold))
+        Slider(
+            value = threshold.toFloat(),
+            onValueChange = { onChange(true, (it / 5).roundToInt() * 5) },
+            valueRange = 40f..90f,
+            steps = 9,
+        )
     }
 }

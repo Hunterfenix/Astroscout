@@ -3,6 +3,8 @@ package com.astroscout.ui.detail
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +43,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.astroscout.R
+import com.astroscout.domain.astro.AstroNight
+import com.astroscout.domain.astro.DarknessLevel
+import com.astroscout.domain.forecast.WeatherDetail
 import com.astroscout.domain.model.Parking
 import com.astroscout.domain.model.SkyQualitySourceType
 import com.astroscout.domain.model.Spot
@@ -134,13 +139,21 @@ private fun Header(spot: Spot, onToggleFavorite: () -> Unit, onRefresh: () -> Un
 
 @Composable
 private fun Badges(spot: Spot) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(vertical = 4.dp)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(vertical = 4.dp).horizontalScroll(rememberScrollState()),
+    ) {
         if (spot.sky?.source == SkyQualitySourceType.SIMULATED) {
             AssistChip(onClick = {}, label = { Text(stringResource(R.string.badge_simulated)) },
                 leadingIcon = { Icon(Icons.Filled.Warning, null, Modifier.size(16.dp)) })
         }
         if (spot.isStale) {
             AssistChip(onClick = {}, label = { Text(stringResource(R.string.badge_cached)) })
+        }
+        spot.weather?.let { w ->
+            if (w.dewRisk) AssistChip(onClick = {}, label = { Text(stringResource(R.string.warn_dew)) })
+            if (w.windRisk) AssistChip(onClick = {}, label = { Text(stringResource(R.string.warn_wind)) })
+            if (w.highCloudRisk) AssistChip(onClick = {}, label = { Text(stringResource(R.string.warn_high_cloud)) })
         }
     }
 }
@@ -187,6 +200,8 @@ private fun ScoreBlock(spot: Spot) {
 private fun Breakdown(spot: Spot) {
     val sky = spot.sky
     val f = spot.forecast
+    val w = spot.weather
+    val a = spot.astro
     val s = spot.score
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         MetricRow(
@@ -219,21 +234,18 @@ private fun Breakdown(spot: Spot) {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        if (f != null) {
-            Text(
-                stringResource(R.string.night_window, Formatters.time(f.windowStart), Formatters.time(f.windowEnd)) +
-                    "  " + MapBadges.weatherEmoji(f.condition),
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(top = 6.dp),
-            )
-        }
         MetricRow(
             label = stringResource(R.string.metric_clouds),
-            value = f?.let {
-                String.format(Locale.getDefault(), "%.0f %% (max %.0f %%)", it.avgCloudCoverPct, it.maxCloudCoverPct) +
-                    if (it.hasPrecipitation) " · " + stringResource(R.string.precipitation) else ""
+            value = spot.cloudPct?.let {
+                String.format(Locale.getDefault(), "%.0f %%", it) +
+                    (if (spot.hasPrecipitation) " · " + stringResource(R.string.precipitation) else "")
             } ?: "—",
             sub = s?.cloudCover,
+        )
+        MetricRow(
+            label = stringResource(R.string.metric_moon),
+            value = a?.let { String.format(Locale.getDefault(), "%.0f %% · ", it.moonIllumination * 100) + stringResource(R.string.moon_free_pct, (it.moonFreeFraction * 100).toInt()) } ?: "—",
+            sub = s?.moon,
         )
         MetricRow(
             label = stringResource(R.string.metric_seeing),
@@ -245,10 +257,106 @@ private fun Breakdown(spot: Spot) {
             value = f?.avgTransparencyIndex?.let { String.format(Locale.getDefault(), "%.1f / 8", it) } ?: "—",
             sub = s?.transparency,
         )
+        MetricRow(
+            label = stringResource(R.string.metric_altitude),
+            value = spot.elevationM?.let { String.format(Locale.getDefault(), "%.0f m", it) } ?: "—",
+            sub = s?.altitude,
+        )
+        a?.let { NightSection(it) }
+        w?.let { WeatherSection(it) }
         spot.forecastUpdatedAt?.let {
             Text(stringResource(R.string.updated_at, Formatters.dateTime(it)), style = MaterialTheme.typography.bodySmall)
         }
     }
+}
+
+/** Crepuscolo, Luna, Via Lattea: tutto calcolato sul telefono, disponibile anche offline. */
+@Composable
+private fun NightSection(a: AstroNight) {
+    val t: (java.time.Instant) -> String = { Formatters.time(it) }
+    Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(stringResource(R.string.section_night), style = MaterialTheme.typography.titleSmall)
+        val darkLabel = stringResource(
+            when (a.darkness) {
+                DarknessLevel.ASTRONOMICAL -> R.string.dark_astronomical
+                DarknessLevel.NAUTICAL -> R.string.dark_nautical
+                DarknessLevel.NONE -> R.string.dark_none
+            }
+        )
+        InfoLine("🌇", stringResource(R.string.sun_set_rise, a.sunset?.let(t) ?: "—", a.sunrise?.let(t) ?: "—"))
+        InfoLine("🌌", "$darkLabel: ${t(a.dark.start)} – ${t(a.dark.end)} (${Formatters.duration(a.darkMinutes)})")
+        InfoLine(
+            moonEmoji(a.moonIllumination, a.moonWaxing),
+            stringResource(
+                R.string.moon_line,
+                (a.moonIllumination * 100).toInt(),
+                stringResource(if (a.moonWaxing) R.string.moon_waxing else R.string.moon_waning),
+                a.moonrise?.let(t) ?: "—",
+                a.moonset?.let(t) ?: "—",
+            ),
+        )
+        a.bestMoonFree?.let {
+            InfoLine("🌑", stringResource(R.string.moon_free_window, t(it.start), t(it.end), Formatters.duration(it.minutes)))
+        } ?: InfoLine("🌕", stringResource(R.string.moon_all_night))
+        val mw = a.milkyWay
+        if (mw.goodMinutes > 0 && mw.goodWindow != null) {
+            InfoLine(
+                "✨",
+                stringResource(
+                    R.string.milky_way_good,
+                    t(mw.goodWindow.start), t(mw.goodWindow.end),
+                    mw.maxAltitudeDeg.toInt(), Formatters.compass(mw.azimuthAtMaxDeg), t(mw.timeOfMax),
+                ),
+            )
+        } else if (mw.maxAltitudeDeg > 0) {
+            InfoLine("✨", stringResource(R.string.milky_way_low, mw.maxAltitudeDeg.toInt()))
+        } else {
+            InfoLine("✨", stringResource(R.string.milky_way_none))
+        }
+    }
+}
+
+@Composable
+private fun WeatherSection(w: WeatherDetail) {
+    Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(stringResource(R.string.section_weather), style = MaterialTheme.typography.titleSmall)
+        fun pct(v: Double?) = v?.let { String.format(Locale.getDefault(), "%.0f%%", it) } ?: "—"
+        InfoLine("☁", stringResource(R.string.cloud_layers, pct(w.avgLowPct), pct(w.avgMidPct), pct(w.avgHighPct)))
+        InfoLine(
+            "🌡",
+            stringResource(
+                R.string.temp_dew,
+                w.minTempC?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—",
+                w.minDewSpreadC?.let { String.format(Locale.getDefault(), "%.1f", it) } ?: "—",
+                w.maxHumidityPct?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—",
+            ),
+        )
+        InfoLine(
+            "💨",
+            stringResource(
+                R.string.wind_line,
+                w.avgWindMs?.let { String.format(Locale.getDefault(), "%.0f", it * 3.6) } ?: "—",
+                w.maxGustMs?.let { String.format(Locale.getDefault(), "%.0f", it * 3.6) } ?: "—",
+            ),
+        )
+    }
+}
+
+@Composable
+private fun InfoLine(icon: String, text: String) {
+    Row {
+        Text(icon, Modifier.width(26.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+/** Fase lunare come emoji (8 fasi), dalla frazione illuminata e dal verso. */
+private fun moonEmoji(k: Double, waxing: Boolean): String = when {
+    k < 0.04 -> "🌑"
+    k > 0.96 -> "🌕"
+    k in 0.40..0.60 -> if (waxing) "🌓" else "🌗"
+    k < 0.40 -> if (waxing) "🌒" else "🌘"
+    else -> if (waxing) "🌔" else "🌖"
 }
 
 @Composable
@@ -282,6 +390,7 @@ private fun ParkingRow(p: Parking, onClick: () -> Unit) {
             )
         }
         p.surface?.let { add(it) }
+        p.elevationM?.let { add(String.format(Locale.getDefault(), "%.0f m", it)) }
     }.joinToString(" · ")
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),

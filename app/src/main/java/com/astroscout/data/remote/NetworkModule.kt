@@ -3,6 +3,7 @@ package com.astroscout.data.remote
 import com.astroscout.BuildConfig
 import com.astroscout.data.remote.api.DarkSkySitesApi
 import com.astroscout.data.remote.api.NominatimApi
+import com.astroscout.data.remote.api.OpenMeteoApi
 import com.astroscout.data.remote.api.OverpassApi
 import com.astroscout.data.remote.api.SevenTimerApi
 import kotlinx.serialization.json.Json
@@ -72,6 +73,8 @@ class NetworkModule(cacheDir: File) {
         OVERPASS_ENDPOINTS.first(),
         okHttp.newBuilder().readTimeout(35, TimeUnit.SECONDS).callTimeout(45, TimeUnit.SECONDS).build(),
     ).create(OverpassApi::class.java)
+
+    val openMeteo: OpenMeteoApi = retrofit("https://api.open-meteo.com/").create(OpenMeteoApi::class.java)
 
     val nominatim: NominatimApi = retrofit("https://nominatim.openstreetmap.org/").create(NominatimApi::class.java)
 

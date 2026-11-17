@@ -38,16 +38,33 @@ class NightForecastInterpreter(
         return Window(start.toInstant(), end.toInstant())
     }
 
+    /** Finestra fissa 20:00–04:00 (fallback quando non c'è la finestra buia astronomica). */
     fun summarize(
         response: AstroForecastResponse,
         now: ZonedDateTime = ZonedDateTime.now(ZoneId.systemDefault()),
     ): NightForecast? {
-        val init = parseInit(response.init) ?: return null
         val window = nextNightWindow(now)
+        return summarize(response, window.start, window.end)
+    }
 
-        val inWindow = response.dataseries.filter { p ->
-            val t = init.plusSeconds(p.timepoint * 3600L)
+    /**
+     * Riassunto sulla finestra [start, end] (tipicamente il buio astronomico calcolato).
+     * 7Timer! ha passo 3 h: se nella finestra cadono meno di 2 campioni (notti estive brevi)
+     * si includono anche quelli entro ±90 min, cioè i due step adiacenti.
+     */
+    fun summarize(response: AstroForecastResponse, start: Instant, end: Instant): NightForecast? {
+        val init = parseInit(response.init) ?: return null
+        val window = Window(start, end)
+        fun timeOf(p: com.astroscout.data.remote.dto.AstroDataPoint) = init.plusSeconds(p.timepoint * 3600L)
+
+        var inWindow = response.dataseries.filter { p ->
+            val t = timeOf(p)
             !t.isBefore(window.start) && !t.isAfter(window.end)
+        }
+        if (inWindow.count { SevenTimerScales.cloudCoverPercent(it.cloudcover) != null } < 2) {
+            val ps = window.start.minusSeconds(PAD_SECONDS)
+            val pe = window.end.plusSeconds(PAD_SECONDS)
+            inWindow = response.dataseries.filter { p -> val t = timeOf(p); !t.isBefore(ps) && !t.isAfter(pe) }
         }
         val clouds = inWindow.mapNotNull { SevenTimerScales.cloudCoverPercent(it.cloudcover) }
         if (clouds.isEmpty()) return null // forecast troppo vecchio o troppo corto per questa notte
@@ -74,6 +91,7 @@ class NightForecastInterpreter(
     }
 
     companion object {
+        private const val PAD_SECONDS = 90 * 60L
         private val INIT_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHH")
 
         fun parseInit(init: String): Instant? = runCatching {

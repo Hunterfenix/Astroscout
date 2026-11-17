@@ -2,6 +2,7 @@ package com.astroscout
 
 import android.app.Application
 import com.astroscout.di.AppContainer
+import com.astroscout.work.GoodNightNotifier
 import com.astroscout.work.RefreshWorker
 import org.maplibre.android.MapLibre
 import org.maplibre.android.module.http.HttpRequestUtil
@@ -23,6 +24,7 @@ class AstroScoutApp : Application() {
         // ambient cache SQLite per i tile; non vogliamo che i tile sfrattino le risposte API).
         HttpRequestUtil.setOkHttpClient(container.network.okHttp.newBuilder().cache(null).build())
 
+        GoodNightNotifier.createChannel(this)
         RefreshWorker.schedule(this)
     }
 }

@@ -6,7 +6,7 @@ package com.astroscout.domain.model
 sealed interface DataError {
     val service: Service
 
-    enum class Service { SKY_QUALITY, FORECAST, PARKING, GEOCODING }
+    enum class Service { SKY_QUALITY, FORECAST, WEATHER, PARKING, GEOCODING }
 
     data class NoConnection(override val service: Service) : DataError
     data class Timeout(override val service: Service) : DataError
