@@ -11,3 +11,7 @@
 .kotlin/
 *.apk
 *.aab
+
+# tools/build_sky_tiles.py
+.venv/
+sky-tiles/

@@ -11,16 +11,22 @@ Licenza **CC BY-NC 4.0**: uso non commerciale e attribuzione (già presente nell
 
 ## 2. Genera le tile
 
+Usa un ambiente virtuale: su Arch/CachyOS, Debian 12+, Fedora ecc. `pip install` nel Python di
+sistema è bloccato (PEP 668, "externally-managed-environment"). Chiamando direttamente i
+programmi in `.venv/bin/` non serve "attivare" il venv (funziona anche con fish/zsh):
+
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install rasterio numpy
+.venv/bin/pip install rasterio numpy        # Windows: .venv\Scripts\pip install rasterio numpy
 
 # tutto il mondo
-python tools/build_sky_tiles.py /percorso/World_Atlas_2015.tif --out sky-tiles
+.venv/bin/python tools/build_sky_tiles.py /percorso/World_Atlas_2015.tif --out sky-tiles
 # oppure solo Europa (più veloce, meno file)
-python tools/build_sky_tiles.py /percorso/World_Atlas_2015.tif --out sky-tiles --bbox -25 34 45 72
+.venv/bin/python tools/build_sky_tiles.py /percorso/World_Atlas_2015.tif --out sky-tiles --bbox -25 34 45 72
 ```
+
+Se `pip install rasterio` tenta di compilare e fallisce su GDAL (nessuna wheel per la tua versione
+di Python): installa GDAL di sistema (`sudo pacman -S gdal`, `sudo apt install libgdal-dev`) e riprova.
 
 Lo script stampa quante tile ha scritto. Se sono più di 1000 (limite asset di una GitHub Release)
 usa `--bbox` oppure `--tile-deg 10`.
