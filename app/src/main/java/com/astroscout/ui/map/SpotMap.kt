@@ -238,6 +238,9 @@ private fun toFeature(spot: Spot): Feature =
         addBooleanProperty("halo", spot.sky?.bortle?.let(Bortle::deservesHalo) == true)
         addBooleanProperty("favorite", spot.isFavorite)
         addStringProperty("badge", MapBadges.badgeId(spot))
+        // symbol-sort-key: valori PIÙ BASSI vengono piazzati per primi e vincono le collisioni,
+        // quindi gli spot migliori (e quelli ancora senza score per ultimi) restano visibili.
+        addNumberProperty("sortKey", 100 - (spot.score?.total ?: -1))
     }
 
 private fun installLayers(style: Style) {
@@ -296,10 +299,15 @@ private fun installLayers(style: Style) {
             minZoom = BADGE_MIN_ZOOM
         }.withProperties(
             PropertyFactory.iconImage(Expression.get("badge")),
-            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM_LEFT),
-            PropertyFactory.iconOffset(arrayOf(6f, -6f)),
-            PropertyFactory.iconAllowOverlap(true),
-            PropertyFactory.iconIgnorePlacement(true),
+            // Badge centrato SOPRA il cerchio. Con allowOverlap=false MapLibre esegue il collision
+            // detection: un badge che coprirebbe un altro non viene disegnato (riappare zoomando).
+            // ignorePlacement=false: anche gli altri simboli tengono conto dello spazio occupato.
+            PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM),
+            PropertyFactory.iconOffset(arrayOf(0f, -9f)),
+            PropertyFactory.iconAllowOverlap(false),
+            PropertyFactory.iconIgnorePlacement(false),
+            PropertyFactory.iconPadding(1f),
+            PropertyFactory.symbolSortKey(Expression.get("sortKey")),
         )
     )
 }
