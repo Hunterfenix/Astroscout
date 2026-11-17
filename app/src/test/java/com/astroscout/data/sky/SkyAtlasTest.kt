@@ -122,6 +122,18 @@ class SkyAtlasTest {
     }
 
     @Test
+    fun `regional pack - outside bbox is an error, never dark`() = runBlocking {
+        val europe = """{"format":1,"version":"eu","tileDeg":5,"latMin":30,"latMax":75,"lonMin":-25,"lonMax":45,"tiles":["N45E005"]}"""
+        server(mapOf("N45E005" to gradientTile()), europe, AtomicInteger()).use { s ->
+            val store = SkyTileStore(OkHttpClient(), s.url("/sky/").toString(), tmp.newFolder("eu"), json)
+            assertEquals(19.5, store.sample(47.5, 7.5).sqm, 0.03)          // Europa, tile presente
+            assertTrue(store.sample(60.0, 40.0).isDarkDefault)              // Europa, tile omessa = buia
+            // USA (40° N, -100°): latitudine nel range ma longitudine fuori → errore, non "Bortle 1"
+            assertTrue(runCatching { store.sample(40.0, -100.0) }.exceptionOrNull() is OutOfAtlasCoverageException)
+        }
+    }
+
+    @Test
     fun `new manifest version discards old tiles`() = runBlocking {
         val hits = AtomicInteger()
         val dir = tmp.newFolder("atlas3")

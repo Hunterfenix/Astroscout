@@ -18,8 +18,9 @@ import java.util.concurrent.ConcurrentHashMap
 /** Risposta HTTP non 2xx da una chiamata OkHttp diretta (fuori da Retrofit). */
 class HttpStatusException(val code: Int, url: String) : IOException("HTTP $code per $url")
 
-/** Punto fuori dalla copertura dell'atlante (es. oltre 85° N). */
-class OutOfAtlasCoverageException(lat: Double) : IllegalArgumentException("Latitudine $lat fuori copertura dell'atlante")
+/** Punto fuori dalla copertura dell'atlante (es. oltre 85° N, o fuori dal --bbox generato). */
+class OutOfAtlasCoverageException(lat: Double, lon: Double) :
+    IllegalArgumentException("Punto ($lat, $lon) fuori dalla copertura dell'atlante")
 
 data class SkyAtlasSample(val sqm: Double, val tileId: String, val isDarkDefault: Boolean)
 
@@ -104,7 +105,7 @@ class SkyTileStore(
     /** SQM nel punto. Scarica la tile solo se non è già su disco. */
     suspend fun sample(lat: Double, lon: Double): SkyAtlasSample {
         val m = manifest()
-        if (!m.isCovered(lat)) throw OutOfAtlasCoverageException(lat)
+        if (!m.isCovered(lat, lon)) throw OutOfAtlasCoverageException(lat, lon)
         val id = SkyTile.tileIdFor(lat, lon, m.tileDeg)
         if (id !in tileSet) return SkyAtlasSample(m.darkSqm, id, isDarkDefault = true)
         val sqm = tile(m, id).sample(lat, lon) ?: m.darkSqm // tile presente ma pixel nodata (es. mare)
@@ -114,7 +115,7 @@ class SkyTileStore(
     /** Scarica in anticipo le tile che coprono i punti dati (uso offline). Ritorna quante ne ha scaricate. */
     suspend fun prefetch(points: List<Pair<Double, Double>>): Int {
         val m = manifest()
-        val ids = points.filter { m.isCovered(it.first) }
+        val ids = points.filter { m.isCovered(it.first, it.second) }
             .map { SkyTile.tileIdFor(it.first, it.second, m.tileDeg) }
             .filter { it in tileSet }
             .distinct()

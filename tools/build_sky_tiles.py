@@ -132,6 +132,8 @@ def main() -> int:
         "tileDeg": deg,
         "latMin": cov_lat_min,
         "latMax": cov_lat_max,
+        "lonMin": cov_lon_min,
+        "lonMax": cov_lon_max,
         "darkSqm": round((args.dark_threshold + 22.0) / 2, 3),
         "tiles": sorted(written),
         "generatedAt": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
