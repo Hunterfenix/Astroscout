@@ -121,8 +121,9 @@ data class Spot(
     /** Nuvolosità migliore disponibile: Open-Meteo (modelli fini) se c'è, altrimenti 7Timer!. */
     val cloudPct: Double? get() = weather?.avgCloudPct ?: forecast?.avgCloudCoverPct
 
+    /** Fonte più fine disponibile: Open-Meteo (ore bagnate ≥ 1/3), altrimenti 7Timer!. */
     val hasPrecipitation: Boolean
-        get() = (weather?.precipitationMm ?: 0.0) >= 0.2 || forecast?.hasPrecipitation == true
+        get() = weather?.isRainy ?: (forecast?.hasPrecipitation == true)
 
     val condition: WeatherCondition?
         get() = cloudPct?.let { NightForecastInterpreter.classify(it, hasPrecipitation) }

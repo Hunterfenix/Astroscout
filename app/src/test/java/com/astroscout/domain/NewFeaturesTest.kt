@@ -46,6 +46,27 @@ class NewFeaturesTest {
     }
 
     @Test
+    fun `a single wet hour does not make the whole night rainy`() {
+        // Tutte le 6 ore: pioggia solo nell'ultima (1.2 mm) → 1 ora bagnata su 5 valide = 0.2
+        val w = OpenMeteoInterpreter.summarize(meteo, Instant.ofEpochSecond(1792170000), Instant.ofEpochSecond(1792188000))!!
+        assertEquals(0.2, w.wetFraction, 1e-9)
+        assertFalse(w.isRainy)
+        val sky = SkyQuality(22.0, 1, SkyQualitySourceType.WORLD_ATLAS_2015)
+        val s = AstroScoreCalculator().compute(sky, null, ScoreWeights(0.5, 0.3, 0.0, 0.0, 0.0, 0.0), w)!!
+        // nessun tetto a 20: cloud = (1 − 0.41)·(1 − 0.2) = 0.472 → (0.5 + 0.3·0.472)/0.8 = 0.802 → 80
+        assertEquals(80, s.total)
+    }
+
+    @Test
+    fun `rain in most of the night caps the score`() {
+        val rainy = meteo.copy(hourly = meteo.hourly!!.copy(precipitation = listOf(0.5, 0.5, 0.5, 0.0, 0.5, 0.5)))
+        val w = OpenMeteoInterpreter.summarize(rainy, Instant.ofEpochSecond(1792170000), Instant.ofEpochSecond(1792188000))!!
+        assertTrue(w.isRainy)
+        val sky = SkyQuality(22.0, 1, SkyQualitySourceType.WORLD_ATLAS_2015)
+        assertEquals(20, AstroScoreCalculator().compute(sky, null, ScoreWeights.DEFAULT, w)!!.total)
+    }
+
+    @Test
     fun `open-meteo returns null when the window is outside the forecast`() {
         assertNull(OpenMeteoInterpreter.summarize(meteo, Instant.ofEpochSecond(1700000000), Instant.ofEpochSecond(1700003600)))
     }

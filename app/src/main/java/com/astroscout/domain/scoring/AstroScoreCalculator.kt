@@ -20,8 +20,9 @@ import kotlin.math.roundToInt
  * - **Inquinamento luminoso**: lineare sull'SQM tra 17.5 (cielo cittadino, 0) e 22.0
  *   (cielo naturale, 1). L'SQM è logaritmico (mag/arcsec²), quindi una scala lineare in SQM è già
  *   "percettiva": +1 mag/arcsec² ≈ cielo 2.5× più scuro. Se c'è solo il Bortle: (9 − B) / 8.
- * - **Nuvolosità**: 1 − copertura media nella finestra buia; 0 con precipitazioni. Fonte
- *   Open-Meteo (modelli a 2–7 km) se disponibile, altrimenti 7Timer! (GFS ~25 km).
+ * - **Nuvolosità**: (1 − copertura media nella finestra buia) · (1 − frazione di ore con pioggia).
+ *   Fonte Open-Meteo (modelli a 2–7 km) se disponibile, altrimenti 7Timer! (GFS ~25 km), dove la
+ *   precipitazione conta solo se presente in ≥ 1/3 dei campioni.
  * - **Seeing** / **Trasparenza**: (8 − indice medio 7Timer!) / 7, perché 1 è il valore migliore.
  * - **Luna e crepuscolo**: `f + (1 − f)·(1 − k)`, con f = frazione della notte buia con Luna
  *   sotto l'orizzonte e k = frazione illuminata. Luna nuova o assente → 1; Luna piena tutta la
@@ -49,11 +50,21 @@ class AstroScoreCalculator(
         astro: AstroNight? = null,
         elevationM: Double? = null,
     ): AstroScore? {
-        val precipitation = (weather?.precipitationMm ?: 0.0) >= 0.2 || forecast?.hasPrecipitation == true
         val cloudPct = weather?.avgCloudPct ?: forecast?.avgCloudCoverPct
+        // Con Open-Meteo la pioggia pesa in proporzione alle ore bagnate; il tetto scatta solo se
+        // piove in almeno metà della notte. Con il solo 7Timer! (step 3 h) resta il vecchio criterio.
+        val wetFraction = weather?.wetFraction
+        val precipitation = if (wetFraction != null) wetFraction >= 0.5 else forecast?.hasPrecipitation == true
 
         val lp = sky?.let { lightPollutionScore(it) }
-        val cloud = cloudPct?.let { if (precipitation) 0.0 else (1.0 - it / 100.0).coerceIn(0.0, 1.0) }
+        val cloud = cloudPct?.let { c ->
+            val clear = (1.0 - c / 100.0).coerceIn(0.0, 1.0)
+            when {
+                wetFraction != null -> clear * (1.0 - wetFraction)
+                precipitation -> 0.0
+                else -> clear
+            }
+        }
         val seeing = forecast?.avgSeeingIndex?.let { indexScore(it) }
         val transp = forecast?.avgTransparencyIndex?.let { indexScore(it) }
         val moon = astro?.let { moonScore(it) }

@@ -17,7 +17,12 @@ data class WeatherDetail(
     val avgWindMs: Double?,
     val maxGustMs: Double?,
     val precipitationMm: Double,
+    /** Frazione delle ore buie con precipitazione ≥ 0.1 mm/h (0..1). */
+    val wetFraction: Double = 0.0,
 ) {
+    /** "Notte piovosa" solo se piove in almeno un terzo delle ore buie, non per un'ora isolata. */
+    val isRainy: Boolean get() = wetFraction >= RAINY_FRACTION
+
     val dewRisk: Boolean
         get() = (minDewSpreadC != null && minDewSpreadC < DEW_SPREAD_RISK_C) ||
             (maxHumidityPct != null && maxHumidityPct >= HUMIDITY_RISK_PCT)
@@ -32,6 +37,8 @@ data class WeatherDetail(
         const val DEW_SPREAD_RISK_C = 2.0
         const val HUMIDITY_RISK_PCT = 92.0
         const val GUST_RISK_MS = 10.0
+        const val WET_HOUR_MM = 0.1
+        const val RAINY_FRACTION = 0.34
     }
 }
 
@@ -70,6 +77,7 @@ object OpenMeteoInterpreter {
             avgWindMs = h.windSpeed.avg(),
             maxGustMs = h.windGusts.max(),
             precipitationMm = idx.sumOf { h.precipitation.getOrNull(it) ?: 0.0 },
+            wetFraction = idx.count { (h.precipitation.getOrNull(it) ?: 0.0) >= WeatherDetail.WET_HOUR_MM }.toDouble() / idx.size,
         )
     }
 }

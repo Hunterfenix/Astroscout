@@ -72,7 +72,10 @@ class NightForecastInterpreter(
         val seeingIdx = inWindow.map { it.seeing }.filter(SevenTimerScales::isValidSeeing)
         val transpIdx = inWindow.map { it.transparency }.filter(SevenTimerScales::isValidTransparency)
         val seeingArcsec = seeingIdx.mapNotNull(SevenTimerScales::seeingArcsec)
-        val precip = inWindow.any { it.precType.isNotBlank() && it.precType != "none" }
+        // Precipitazione "della notte" solo se presente in almeno 1/3 dei campioni (non un singolo step).
+        val withData = inWindow.filter { SevenTimerScales.cloudCoverPercent(it.cloudcover) != null }
+        val wet = withData.count { it.precType.isNotBlank() && it.precType != "none" }
+        val precip = withData.isNotEmpty() && wet.toDouble() / withData.size >= 0.34
 
         val avgCloud = clouds.average()
         return NightForecast(

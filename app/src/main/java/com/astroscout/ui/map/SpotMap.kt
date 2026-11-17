@@ -70,6 +70,7 @@ private const val LAYER_HALO = "spots-halo"
 private const val LAYER_CIRCLE = "spots-circle"
 private const val LAYER_SELECTED = "spots-selected"
 private const val LAYER_BADGE = "spots-badge"
+private const val BADGE_MIN_ZOOM = 8f
 
 /**
  * MapLibre in Compose via [AndroidView].
@@ -289,7 +290,11 @@ private fun installLayers(style: Style) {
     )
 
     style.addLayer(
-        SymbolLayer(LAYER_BADGE, SOURCE_SPOTS).withProperties(
+        SymbolLayer(LAYER_BADGE, SOURCE_SPOTS).apply {
+            // Sotto zoom 8 una griglia da 5 km diventa una macchia di badge sovrapposti: si vedono
+            // solo i cerchi colorati, il dettaglio compare avvicinandosi.
+            minZoom = BADGE_MIN_ZOOM
+        }.withProperties(
             PropertyFactory.iconImage(Expression.get("badge")),
             PropertyFactory.iconAnchor(Property.ICON_ANCHOR_BOTTOM_LEFT),
             PropertyFactory.iconOffset(arrayOf(6f, -6f)),
