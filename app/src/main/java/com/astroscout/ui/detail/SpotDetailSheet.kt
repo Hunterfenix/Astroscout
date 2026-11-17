@@ -59,6 +59,7 @@ import com.astroscout.ui.theme.BortleDark
 import com.astroscout.ui.theme.BortleModerate
 import com.astroscout.ui.theme.Unknown
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * Contenuto della bottom sheet. Tutto in una LazyColumn: la lista dei parcheggi può essere lunga
@@ -244,7 +245,7 @@ private fun Breakdown(spot: Spot) {
         )
         MetricRow(
             label = stringResource(R.string.metric_moon),
-            value = a?.let { String.format(Locale.getDefault(), "%.0f %% · ", it.moonIllumination * 100) + stringResource(R.string.moon_free_pct, (it.moonFreeFraction * 100).toInt()) } ?: "—",
+            value = a?.let { String.format(Locale.getDefault(), "%.0f %% · ", it.moonIllumination * 100) + stringResource(R.string.moon_free_pct, (it.moonFreeFraction * 100).roundToInt()) } ?: "—",
             sub = s?.moon,
         )
         MetricRow(
@@ -289,7 +290,7 @@ private fun NightSection(a: AstroNight) {
             moonEmoji(a.moonIllumination, a.moonWaxing),
             stringResource(
                 R.string.moon_line,
-                (a.moonIllumination * 100).toInt(),
+                (a.moonIllumination * 100).roundToInt(),
                 stringResource(if (a.moonWaxing) R.string.moon_waxing else R.string.moon_waning),
                 a.moonrise?.let(t) ?: "—",
                 a.moonset?.let(t) ?: "—",
