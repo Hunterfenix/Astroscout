@@ -65,7 +65,7 @@ class DtoParsingTest {
         val q = ParkingMapper.buildQuery(GeoPoint(45.5, 9.25), 3000)
         assertTrue(q.contains("""nwr["amenity"="parking"]"""))
         assertTrue(q.contains("(around:3000,45.500000,9.250000)"))
-        assertTrue(q.contains("out center tags;"))
+        assertTrue(q.contains("out center tags qt;"))
     }
 
     @Test

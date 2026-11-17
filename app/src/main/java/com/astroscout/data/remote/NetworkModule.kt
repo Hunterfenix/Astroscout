@@ -71,18 +71,21 @@ class NetworkModule(cacheDir: File) {
 
     val overpass: OverpassApi = retrofit(
         OVERPASS_ENDPOINTS.first(),
-        okHttp.newBuilder().readTimeout(35, TimeUnit.SECONDS).callTimeout(45, TimeUnit.SECONDS).build(),
+        okHttp.newBuilder().readTimeout(20, TimeUnit.SECONDS).callTimeout(25, TimeUnit.SECONDS).build(),
     ).create(OverpassApi::class.java)
+
+    val overpassClient = OverpassClient(overpass)
 
     val openMeteo: OpenMeteoApi = retrofit("https://api.open-meteo.com/").create(OpenMeteoApi::class.java)
 
     val nominatim: NominatimApi = retrofit("https://nominatim.openstreetmap.org/").create(NominatimApi::class.java)
 
     companion object {
-        /** Istanza principale + mirror pubblico: si passa al successivo su 429/504/timeout. */
+        /** Istanze pubbliche (wiki OSM "Overpass API#Public Overpass API instances"), interrogate in hedging. */
         val OVERPASS_ENDPOINTS = listOf(
             "https://overpass-api.de/api/interpreter",
             "https://overpass.kumi.systems/api/interpreter",
+            "https://overpass.private.coffee/api/interpreter",
         )
 
         private fun String.ensureTrailingSlash() = if (endsWith("/")) this else "$this/"

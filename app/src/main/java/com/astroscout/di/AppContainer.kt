@@ -75,7 +75,7 @@ class AppContainer(context: Context) {
             db = database,
             skySource = skyQualitySource,
             sevenTimer = network.sevenTimer,
-            overpass = network.overpass,
+            overpassClient = network.overpassClient,
             nominatim = network.nominatim,
             openMeteo = network.openMeteo,
             json = network.json,

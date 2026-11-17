@@ -6,10 +6,9 @@ import com.astroscout.data.local.ForecastEntity
 import com.astroscout.data.local.MeteoEntity
 import com.astroscout.data.local.ParkingCacheEntity
 import com.astroscout.data.local.SpotEntity
-import com.astroscout.data.remote.NetworkModule
+import com.astroscout.data.remote.OverpassClient
 import com.astroscout.data.remote.api.NominatimApi
 import com.astroscout.data.remote.api.OpenMeteoApi
-import com.astroscout.data.remote.api.OverpassApi
 import com.astroscout.data.remote.api.SevenTimerApi
 import com.astroscout.data.remote.dto.AstroForecastResponse
 import com.astroscout.data.remote.dto.OpenMeteoResponse
@@ -56,6 +55,7 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import java.time.Clock
 import java.time.Duration
@@ -103,7 +103,7 @@ class AstroRepository(
     private val db: AstroDatabase,
     private val skySource: SkyQualitySource,
     private val sevenTimer: SevenTimerApi,
-    private val overpass: OverpassApi,
+    private val overpassClient: OverpassClient,
     private val nominatim: NominatimApi,
     private val openMeteo: OpenMeteoApi,
     private val json: Json,
@@ -386,8 +386,8 @@ class AstroRepository(
     // -------------------------------------------------------------------------------- parcheggi
 
     /**
-     * Parcheggi entro [radiusMeters] dallo spot, ordinati per distanza. Prova i mirror Overpass in
-     * ordine finché uno risponde; per 429/504/timeout passa al successivo.
+     * Parcheggi entro [radiusMeters] dallo spot, ordinati per distanza. I mirror Overpass sono
+     * interrogati in hedging da [OverpassClient] (il primo che risponde vince).
      */
     suspend fun nearbyParkings(spotId: String, point: GeoPoint, radiusMeters: Int, force: Boolean = false): Fetched<List<Parking>> =
         withContext(io) {
@@ -399,36 +399,21 @@ class AstroRepository(
             if (cached != null && fresh && !force) return@withContext Fetched.Fresh(withElevations(cached))
 
             val query = ParkingMapper.buildQuery(point, radiusMeters)
-            var lastError: DataError = DataError.Unknown(Service.PARKING, null)
-            for (endpoint in NetworkModule.OVERPASS_ENDPOINTS) {
-                val r = catching(Service.PARKING) {
-                    overpass.interpreter(endpoint, query).also { resp ->
-                        // HTTP 200 con "remark: runtime error ..." = la query è fallita lato server.
-                        if (resp.elements.isEmpty() && resp.remark?.contains("error", ignoreCase = true) == true) {
-                            throw OverpassRemarkException(resp.remark)
-                        }
-                    }
-                }
-                val resp = r.getOrNull()
-                if (resp != null) {
-                    parkingDao.upsert(ParkingCacheEntity(key, json.encodeToString(OverpassResponse.serializer(), resp), clock.millis()))
-                    return@withContext Fetched.Fresh(withElevations(ParkingMapper.toParkings(resp, point)))
-                }
-                lastError = r.dataErrorOrNull(Service.PARKING)!!
-                val retryable = lastError is DataError.RateLimited || lastError is DataError.Timeout ||
-                    (lastError as? DataError.Http)?.code?.let { it >= 500 } == true ||
-                    lastError is DataError.InvalidResponse
-                if (!retryable) break
+            val r = catching(Service.PARKING) { overpassClient.query(query) }
+            r.getOrNull()?.let { resp ->
+                parkingDao.upsert(ParkingCacheEntity(key, json.encodeToString(OverpassResponse.serializer(), resp), clock.millis()))
+                return@withContext Fetched.Fresh(withElevations(ParkingMapper.toParkings(resp, point)))
             }
+            val lastError = r.dataErrorOrNull(Service.PARKING)!!
             if (cached != null) Fetched.Cached(withElevations(cached), lastError) else Fetched.Failed(lastError)
         }
 
+    /** Quote dei parcheggi con un limite di 4 s: se Open-Meteo è lento la lista esce comunque. */
     private suspend fun withElevations(list: List<Parking>): List<Parking> {
-        val el = ensureElevations(list.map { it.point })
+        val el = withTimeoutOrNull(4_000) { ensureElevations(list.map { it.point }) } ?: emptyMap()
         return list.map { it.copy(elevationM = el[it.point.id]) }
     }
 
-    private class OverpassRemarkException(remark: String) : java.io.InterruptedIOException("Overpass: $remark")
 
     // --------------------------------------------------------------------------------- ricerca
 
